@@ -26,7 +26,7 @@ source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/all_r_functions.R
 
 # Update git / github
 library(usethis) # usethis & gert https://jeroen.github.io/gert2019 https://www.garrickadenbuie.com/blog/pull-request-flow-usethis/?interactive=1&steps=
-use_git_config(user.name = "ojziff", user.email = "oliver.ziff@crick.ac.uk") 
+#use_git_config(user.name = "ojziff", user.email = "oliver.ziff@crick.ac.uk") 
 
 # make github
 library(gert)
