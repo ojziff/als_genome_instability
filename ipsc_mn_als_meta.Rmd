@@ -1,5 +1,6 @@
 ---
 title: "ipsc_mn_als_meta"
+font-family: 'Helvetica'
 author: |
   | Oliver Ziff
   | Patani Lab
@@ -22,7 +23,7 @@ output:
 ```{r setup, include=FALSE}
 load("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/all_r_functions.R")
-#source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/all_functions_r_4.0.0.R")
+
 
 # Update git / github
 library(usethis) # usethis & gert https://jeroen.github.io/gert2019 https://www.garrickadenbuie.com/blog/pull-request-flow-usethis/?interactive=1&steps=
@@ -53,7 +54,7 @@ Run the DESeq2 objects scripts to create microglia-bulk-rnaseq.RData. Takes \~ 1
 cd /camp/home/ziffo/home/projects/ipsc-mn-als-meta/scripts
 mls
 sar
-sbatch -N 1 -c 8 --mem=40G -t 4:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects 
+sbatch -N 1 -c 8 --mem=40G -t 4:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects 
 ```
 
 # Fig S1 PCA
@@ -62,9 +63,7 @@ hiPSC & cortex clustering
 
 ```{r}
 ipsc_mn_als_datasets.pcaData <- plotPCA(ipsc_mn_als_datasets$vsd, intgroup=c("sample", "condition", "replicate", "mutation", "sample", "dataset", "strandedness", "instrument", "total_spots", "total_size","read_count", "age", "disease_state", "tissue", "cell_type", "accession", "study_accession", "instrument_model", "instrument_platform","read_count","bases"), returnData=TRUE) %>% 
-  mutate(instrument = case_when(dataset == "lee" & condition == "ctrl" ~ "Illumina NovaSeq 6000", TRUE ~ instrument), dataset = as.character(dataset), dataset = case_when(dataset %in% c("dafianca.c9orf72","dafianca.tardbp") ~ "dafianca", TRUE ~  dataset),
-         DIV = as.factor(case_when(dataset %in% c("catanese","lee","luisier", "sareen","kapeli","smith","singapore") ~ 35, dataset == "dafianca" ~ 30, dataset == "wang" ~ 12, dataset == "melamed" ~ 28, dataset == "desantis" ~ 19, dataset == "moccia" ~ 30, dataset == "sterneckert" ~ 40)),
-         instrument = gsub("Illumina ","",instrument), total_size = case_when(dataset == "lee" & condition == "ctrl" ~ read_count, dataset == "luisier" ~ bases, TRUE ~ total_size))
+  mutate(dataset = as.character(dataset), dataset = case_when(dataset %in% c("dafianca.c9orf72","dafianca.tardbp") ~ "dafianca", TRUE ~  dataset)
 
 # Colour by dataset
 ipsc_mn_als_datasets.pca_dataset <- ggplot(ipsc_mn_als_datasets.pcaData, aes(PC1, PC2, color=dataset)) + geom_point(size=2) + 
@@ -151,6 +150,7 @@ astrocyte.markers = c("ALDH1L1", "AQP4", "GFAP","SOX9", "EDNRB", "DIO2", "FGFR3"
 endo.markers = c("CLDN5",  "ESAM", "ICAM2", "APOLD1", "NOSTRIN", "ADGRL4", "PECAM1")
 myeloid.markers = c("AIF1", "C1QA", "CSF1R", "ITGAM", "PTPRC", "TREM2", "RUNX1", "CD83",  "CCL2", "TLR2",  "MERTK", "CCL3", "TMEM119", "TNF", "IL1A", "CX3CR1","P2RY12") # , "CEMIP2"  "HMGB1",
 # myeloid.markers = c("AIF1", "C1QA", "CSF1R", "ITGAM", "PTPRC", "CEMIP2", "TREM2", "RUNX1", "CD83",  "CCL2", "TLR2",  "MERTK", "HMGB1", "TMEM119", "TNF", "IL1A", "CCL3", "CX3CR1","P2RY12")
+postmitotic.motor.neuron <- c("CHAT","MNX1","ISL1","FOXP1","LHX3","ETV4","LMO4","NOTCH1","SIM1")
 mn.markers = c(postmitotic.motor.neuron,"SYT1","MAP2","STMN2","NEFM","SNAP25","SYT4","NCAM1","SCG2","GAP43","L1CAM","TUBB3","NEFL")
 interneuron.markers <- c("ZIC1","ZIC4","LHX1","LHX5","DRGX","LMX1B","POU4F1","LBX1","EVX1","EN1")
 
@@ -190,7 +190,7 @@ celltype.markers.rnaseq.heatmap <- Heatmap(celltype.markers.marker.mat,
           right_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = c("white", "white", "white", "white", "white", "white")), labels = c("Astrocyte", "Endothel", "Inter\nneuron", "Motor\nneuron", "Myeloid", "Oligoden"), labels_gp = gpar(fontsize = 8), labels_rot = 0)),
           row_title = "Cell type markers", row_title_gp = gpar(fontsize = 8), 
           column_title = NULL, show_column_names = FALSE, #column_names_gp = gpar(fontsize = 8), column_names_rot = 90, column_names_centered = TRUE,
-          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",13)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,4),rep(6,5),rep(7,8),rep(8,6),rep(9,6),rep(10,4),rep(11,6),rep(12,5),rep(13,4)))
+          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",14)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Mitchell","Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,6),rep(6,4),rep(7,5),rep(8,8),rep(9,6),rep(10,6),rep(11,4),rep(12,6),rep(13,5),rep(14,4)))
 celltype.markers.rnaseq.heatmap
 # ggsave(as.ggplot(celltype.markers.rnaseq.heatmap), filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_datasets.celltype.markers.heatmap.png", width = 12, height = 10)
 ```
@@ -202,32 +202,18 @@ celltype.marker.df = data.frame("gene_name" = motor.neuron.markers) %>% mutate(g
 ipsc_mn_als_datasets$vsd.counts %>% filter(gene_name %in% motor.neuron.markers) %>% group_by(gene_name) %>% filter(n()>1) # any duplicate gene_names?
 
 vsd_counts.celltype.marker <-  ipsc_mn_als_datasets$vsd.counts  %>% filter(gene_name %in% motor.neuron.markers) %>% select(-gene_id) %>% mutate_if(is.numeric, funs((. - 4.505))) #rowwise() %>%
- # mutate("Current study" = mean(c_across(starts_with("ctrl")), na.rm = TRUE), 
- #        "Bradley et al" = mean(c_across(starts_with("ventral_spinalcord")), na.rm = TRUE), 
- #        "motor.neuron fetal" = mean(c_across(starts_with("motor.neuron_fetal")), na.rm = TRUE), 
- #        "motor.neuron adult" = mean(c_across(starts_with("motor.neuron_adult_temporal")), na.rm = TRUE), 
- #        Oligodendrocyte = mean(c_across(starts_with("oligodendrocyte")), na.rm = TRUE), 
- #        Myeloid = mean(c_across(starts_with("myeloid")), na.rm = TRUE), 
- #        Neuron = mean(c_across(starts_with("neuron")), na.rm = TRUE)) %>% 
- #  select(gene_name, Myeloid, Neuron, Oligodendrocyte, `motor.neuron adult`, `motor.neuron fetal`, `Bradley et al`, `Current study`, -gene_id) %>%
-  # filter(rowMeans(across(where(is.numeric))) > 3.31) %>% # remove genes with no expression across samples
-  # mutate_if(is.numeric, funs((. - 4.505)))  %>% # subtract from all values so start from 0 
-  # transpose_tibble(old_rownames = "gene_name", new_rownames = "group") %>% # transpose: rows > columns
-  # mutate(across(where(is.numeric), ~ scale2(.x, na.rm = FALSE))) %>% # scale to the columns (i.e. row scale)  scale2 <- function(x, na.rm = FALSE) (x - mean(x, na.rm = na.rm)) / sd(x, na.rm)
-  # transpose_tibble(old_rownames = "group", new_rownames = "gene_name") #%>% arrange(`Current study`)# transpose back: columns > rows, order by expression in our motor.neurons
-
 vsd_counts.celltype.marker.mat <- make_matrix(select(vsd_counts.celltype.marker,-gene_name), pull(vsd_counts.celltype.marker,gene_name))
 celltype.marker.df.filt <- celltype.marker.df %>% filter(gene_name %in% vsd_counts.celltype.marker$gene_name)
+
 motor.neuron.marker.heatmap <- Heatmap(vsd_counts.celltype.marker.mat, 
           heatmap_legend_param = list(title = ""), 
-          cluster_rows = FALSE, cluster_columns = TRUE,
-          row_order = vsd_counts.celltype.marker$gene_name,
+          cluster_rows = FALSE, row_order = vsd_counts.celltype.marker$gene_name,
           show_row_names = TRUE, row_names_side = "right", row_names_gp = gpar(fontsize = 8, fontface = "italic"), #row_labels = celltype.marker.row.labels,
-          left_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = c("white")), labels = c("Motor neuron markers"), labels_gp = gpar(fontsize = 10))),
-          row_title = NULL,
-          column_names_rot = 90, 
-          column_title = NULL)
-          # column_names_gp = gpar(fontsize = c(9,9,9,9,9,9,10)))
+          left_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = c("white")), labels = c("Motor neuron markers"), labels_gp = gpar(fontsize = 10))), row_title = NULL,
+          show_column_names = FALSE, #column_names_rot = 90, 
+          column_title = NULL, cluster_row_slices = FALSE, cluster_columns = FALSE,
+          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",14)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Mitchell","Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,6),rep(6,4),rep(7,5),rep(8,8),rep(9,6),rep(10,6),rep(11,4),rep(12,6),rep(13,5),rep(14,4)))
+
 motor.neuron.marker.heatmap
 
 ```
@@ -293,7 +279,7 @@ differentiation.markers.rnaseq.heatmap <- Heatmap(differentiation.markers.marker
           row_title = "Differentiation stage markers", row_title_gp = gpar(fontsize = 8), row_names_gp = gpar(fontsize = 7),  #, #, col = c(rep("red", 10), rep("blue", 8)))
           right_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = rep("white",5)), labels = c("Neural\ncrest", "Dorsal\nprogen", "Motor\nneuron\nprogen", "Post\nmotitic\nmotor\neuron", "Neuronal"), labels_gp = gpar(fontsize = 8), labels_rot = 0)),
           column_title = NULL, show_column_names = FALSE, #column_names_gp = gpar(fontsize = 8), column_names_rot = 90, column_names_centered = TRUE,
-          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",13)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,4),rep(6,5),rep(7,8),rep(8,6),rep(9,6),rep(10,4),rep(11,6),rep(12,5),rep(13,4)))
+          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",14)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Mitchell","Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,6),rep(6,4),rep(7,5),rep(8,8),rep(9,6),rep(10,6),rep(11,4),rep(12,6),rep(13,5),rep(14,4)))
 differentiation.markers.rnaseq.heatmap
 # ggsave(as.ggplot(differentiation.markers.rnaseq.heatmap), filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_datasets.differentiation.markers.heatmap.png", width = 12, height = 6)
 ```
@@ -320,8 +306,8 @@ HOX.markers.rnaseq.heatmap <- Heatmap(HOX.markers.marker.mat,
           row_order = HOX.markers.df.filt$gene_name,
           row_title = "HOX markers", row_title_gp = gpar(fontsize = 8), row_names_gp = gpar(fontsize = 7),  #, #, col = c(rep("red", 10), rep("blue", 8)))
           # right_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = rep("white",5)), labels = c("Neural\ncrest", "Dorsal\nprogen", "Motor\nneuron\nprogen", "Post\nmotitic\nmotor\neuron", "Neuronal"), labels_gp = gpar(fontsize = 8), labels_rot = 0)),
-          column_title = NULL, show_column_names = FALSE, #column_names_gp = gpar(fontsize = 8), column_names_rot = 90, column_names_centered = TRUE,
-          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",13)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,4),rep(6,5),rep(7,8),rep(8,6),rep(9,6),rep(10,4),rep(11,6),rep(12,5),rep(13,4)))
+          column_title = NULL, show_column_names = FALSE,
+          bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",14)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Mitchell","Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 0)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,6),rep(6,4),rep(7,5),rep(8,8),rep(9,6),rep(10,6),rep(11,4),rep(12,6),rep(13,5),rep(14,4)))
 HOX.markers.rnaseq.heatmap
 # ggsave(as.ggplot(HOX.markers.rnaseq.heatmap), filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_datasets.HOX.markers.heatmap.png", width = 12, height = 6)
 ```

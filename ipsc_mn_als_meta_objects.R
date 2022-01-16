@@ -1,5 +1,6 @@
 # load("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
-source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/all_r_functions.R")
+source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+# source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/all_r_functions.R")
 
 
 # # Metadata ----------------------------------------------------------------
@@ -13,7 +14,8 @@ lee.mutants.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patan
          file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-occular-spinal-mn-lee-2021/splicing/irfinder", sample), dataset = "lee", condition = "als", replicate = as.numeric(gsub("REP","",replicate))) %>% filter(location == "spinal")
 lee.controls.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-occular-spinal-mn-lee-2021/controls/sample-details/samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>%
   mutate(file_salmon = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-occular-spinal-mn-lee-2021/controls/nfcore/star_salmon", sample, "quant.sf"), 
-         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-occular-spinal-mn-lee-2021/splicing/irfinder", sample), dataset = "lee", condition = "ctrl") %>% filter(location == "spinal")
+         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-occular-spinal-mn-lee-2021/splicing/irfinder", sample), dataset = "lee", condition = "ctrl", instrument = "Illumina NovaSeq 6000", total_size = read_count) %>% 
+  filter(location == "spinal")
 lee.metadata = bind_rows(lee.mutants.metadata, lee.controls.metadata)
 dafianca.c9orf72.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-c9orf72-dafinca-2020/sample-details/samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>%
   mutate(file_salmon = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-c9orf72-dafinca-2020/nfcore/star_salmon", sample, "quant.sf"), 
@@ -23,10 +25,11 @@ dafianca.tardbp.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/p
          file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-tardbp-dafinca-2020/splicing/irfinder", sample), dataset = "dafianca.tardbp")
 luisier.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-collab/motor-neuron-vcp-luisier-2018/sample-details/samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>%
   mutate(file_salmon = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/motor-neuron-vcp-luisier-2018/nfcore/star_salmon", sample, "quant.sf"), 
-         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/motor-neuron-vcp-luisier-2018/splicing/irfinder", sample), dataset = "luisier")
+         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/motor-neuron-vcp-luisier-2018/splicing/irfinder", sample), dataset = "luisier", total_size = bases)
 mitchell.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-collab/inter-neuron-bulk-rnaseq/sample-details/samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>%
   mutate(file_salmon = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/inter-neuron-bulk-rnaseq/nfcore/star_salmon", sample, "quant.sf"), 
-         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/inter-neuron-bulk-rnaseq/splicing/irfinder", sample), dataset = "mitchell") %>% filter(day == 25, celltype == "mn")
+         file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/inter-neuron-bulk-rnaseq/splicing/irfinder", sample), dataset = "mitchell",
+         mutation = case_when(condition == "als" ~ "vcp", TRUE ~ "ctrl"), days_of_differentiation = 25, age = 25, instrument = "Illumina HiSeq 4000",library_layout = "PAIRED", total_size = 5000000000, avg_spot_len = 100) %>% filter(day == 25, celltype == "mn")
 wang.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-sod1-wang-2017/sample-details/samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>%
   mutate(file_salmon = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-sod1-wang-2017/nfcore/star_salmon", sample, "quant.sf"), 
          file_irfinder = file.path("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data/ipsc-mn-sod1-wang-2017/splicing/irfinder", sample), dataset = "wang")
@@ -57,7 +60,9 @@ singapore.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-
 
 # ALS hiPSC meta-analysis all datasets
 ipsc_mn_als_datasets.metadata <- bind_rows(catanese.metadata, lee.metadata, dafianca.c9orf72.metadata, dafianca.tardbp.metadata, luisier.metadata, mitchell.metadata, wang.metadata, moccia.metadata, sareen.metadata, sterneckert.metadata, kapeli.metadata, melamed.metadata, desantis.metadata, smith.metadata, singapore.metadata) %>% 
-  mutate(sample_name = sample, sample = paste0(dataset,"_",sample), condition = factor(condition, levels = c("ctrl", "als")), dataset = as.factor(dataset), mutation = as.factor(mutation)) %>%
+  mutate(sample_name = sample, sample = paste0(dataset,"_",sample), condition = factor(condition, levels = c("ctrl", "als")), dataset = as.factor(dataset), mutation = as.factor(mutation),
+         DIV = as.factor(case_when(dataset %in% c("catanese","lee","luisier","sareen","kapeli","smith","singapore") ~ 35, dataset == "dafianca" ~ 30, dataset == "wang" ~ 12, dataset == "melamed" ~ 28, dataset == "desantis" ~ 19, dataset == "moccia" ~ 30, 
+                                   dataset == "sterneckert" ~ 40, dataset == "mitchell" ~ 25)), instrument = gsub("Illumina ","",instrument)) %>%
   select(sample, dataset, condition, mutation, sample_name, replicate, file_salmon, file_irfinder, everything())
 # FUS
 ipsc_mn_fus_datasets.metadata <- bind_rows(filter(catanese.metadata, mutation %in% c("fus","iso","ctrl")), kapeli.metadata, desantis.metadata) %>% 
@@ -88,18 +93,11 @@ ipsc_mn_fus_datasets = DESeq.analysis(metadata = ipsc_mn_fus_datasets.metadata, 
 ipsc_mn_sod1_datasets = DESeq.analysis(metadata = ipsc_mn_sod1_datasets.metadata, design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ dataset + condition + condition:IRFinder)
 ipsc_mn_c9orf72_datasets = DESeq.analysis(metadata = ipsc_mn_c9orf72_datasets.metadata, design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ dataset + condition + condition:IRFinder)
 ipsc_mn_tardbp_datasets = DESeq.analysis(metadata = ipsc_mn_tardbp_datasets.metadata, design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ dataset + condition + condition:IRFinder)
-ipsc_mn_vcp_datasets = DESeq.analysis(metadata = ipsc_mn_vcp_datasets.metadata, design = ~ condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ condition + condition:IRFinder)
+ipsc_mn_vcp_datasets = DESeq.analysis(metadata = ipsc_mn_vcp_datasets.metadata, design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ dataset + condition + condition:IRFinder)
+
+# all mutations
 ipsc_mn_als_datasets = DESeq.analysis(metadata = ipsc_mn_als_datasets.metadata, design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "human", transcript.level = FALSE, IRFinder = TRUE, IRFinder_design = ~ dataset + condition + condition:IRFinder)
 
 print("saving")
 save.image("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
-
-# # IRFinder ----------------------------------------------------------------
-# ir.als_datasets = IRFinder.analysis(metadata = als_datasets.metadata, sample.names = "sample", variable.name = "group", ctrl = "ctrl", mut = "als", batch = "dataset", file.var = "irfinder", ge.res = als_datasets$res, irfinder.dir = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/splicing/irfinder")
-# ir.a1_datasets = IRFinder.analysis(metadata = a1_datasets.metadata, sample.names = "sample", variable.name = "group", ctrl = "a0", mut = "a1", design = ~ dataset + group + group:IRFinder, file.var = "irfinder", ge.res = a1_datasets$res, irfinder.dir = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/splicing/irfinder")
-# ir.mouse_als_datasets = IRFinder.analysis(metadata = mouse_als_datasets.metadata, sample.names = "sample", variable.name = "condition", ctrl = "ctrl", mut = "als", batch = "dataset", file.var = "irfinder", ge.res = mouse_als_datasets$res, animal = "mouse", irfinder.dir = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/splicing/irfinder")
-# ir.guttenplan.A1 = IRFinder.analysis(metadata = guttenplan.A1.metadata, sample.names = "sample", variable.name = "group", ctrl = "A0", mut = "A1", batch = "NA", file.var = "irfinder", ge.res = guttenplan.A1$res, animal = "mouse", irfinder.dir = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/splicing/irfinder")
-# 
-# print("saving")
-# save.image("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
 print("complete")
