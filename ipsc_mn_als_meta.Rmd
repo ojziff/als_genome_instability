@@ -20,6 +20,8 @@ output:
    self_contained: true  
 ---
 
+# Setup
+
 ```{r setup, include=FALSE}
 load("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
