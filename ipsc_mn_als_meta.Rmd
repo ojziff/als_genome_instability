@@ -28,8 +28,9 @@ source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functi
 
 # Update git / github
 library(usethis) # usethis & gert https://jeroen.github.io/gert2019 https://www.garrickadenbuie.com/blog/pull-request-flow-usethis/?interactive=1&steps=
-#use_git_config(user.name = "ojziff", user.email = "oliver.ziff@crick.ac.uk") 
+use_git_config(user.name = "ojziff", user.email = "oliver.ziff@crick.ac.uk")
 
+credentials::set_github_pat("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") 
 # make github
 library(gert)
 setwd("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta") # setwd then dont need to specify repo argument
@@ -63,8 +64,8 @@ sbatch -N 1 -c 8 --mem=40G -t 4:00:00 --wrap="Rscript /camp/lab/luscomben/home/u
 hiPSC & cortex clustering
 
 ```{r}
-ipsc_mn_als_datasets.pcaData <- plotPCA(ipsc_mn_als_datasets$vsd, intgroup=c("sample", "condition", "replicate", "mutation", "sample", "dataset", "strandedness", "instrument", "total_spots", "total_size","read_count", "age", "disease_state", "tissue", "cell_type", "accession", "study_accession", "instrument_model", "instrument_platform","read_count","bases"), returnData=TRUE) %>% 
-  mutate(dataset = as.character(dataset), dataset = case_when(dataset %in% c("dafianca.c9orf72","dafianca.tardbp") ~ "dafianca", TRUE ~  dataset))
+ipsc_mn_als_datasets.pcaData <- plotPCA(ipsc_mn_als_datasets$vsd, intgroup=c("sample", "condition", "replicate", "mutation", "sample", "dataset", "strandedness", "instrument", "total_spots", "total_size","read_count", "age", "disease_state", "tissue", "cell_type", "accession", "study_accession", "instrument_model", "instrument_platform","read_count","bases","DIV"), returnData=TRUE) %>% 
+  mutate(dataset = as.character(dataset), dataset = case_when(dataset %in% c("dafianca.c9orf72","dafianca.tardbp") ~ "dafianca", TRUE ~  dataset), DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV))
 
 # Colour by dataset
 ipsc_mn_als_datasets.pca_dataset <- ggplot(ipsc_mn_als_datasets.pcaData, aes(PC1, PC2, color=dataset)) + geom_point(size=2) + 
@@ -79,7 +80,7 @@ ipsc_mn_als_datasets.pca_dataset <- ggplot(ipsc_mn_als_datasets.pcaData, aes(PC1
 # Neyrinck_ipsc   = "#33A02C", 
 # Bradley_SC_ipsc  = "#FB9A99",
 # Bradley_FB_ipsc   = "#E31A1C")) +
-  theme_bw() + theme(panel.grid = element_blank(), legend.text=element_text(size=8), legend.title=element_text(size=10), legend.position = "right", legend.spacing = unit(0.05, 'cm')) + 
+  theme_bw() + theme(panel.grid = element_blank(), legend.text=element_text(size=8), legend.title=element_text(size=10), legend.position = "right", legend.spacing.y = unit(0.05, 'cm')) + 
   xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets.pcaData, "percentVar"))[1],"% variance")) +  ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets.pcaData, "percentVar"))[2],"% variance")) #+ #coord_fixed() + 
   # geom_text_repel(data = filter(ipsc_mn_als_datasets.pcaData, dataset == "neyrinck"), aes(x = PC1, y = PC2, label = sample), fontface = "italic", colour = "black", min.segment.length = 0, box.padding = 0.5, point.padding = 0.5, size = 2.7, max.overlaps = 30) +
   # ggforce::geom_mark_ellipse(aes(label = dataset), label.fontsize = 8, label.fontface = "plain", con.type = "straight", con.cap = 0.5, show.legend = FALSE)
@@ -151,9 +152,9 @@ astrocyte.markers = c("ALDH1L1", "AQP4", "GFAP","SOX9", "EDNRB", "DIO2", "FGFR3"
 endo.markers = c("CLDN5",  "ESAM", "ICAM2", "APOLD1", "NOSTRIN", "ADGRL4", "PECAM1")
 myeloid.markers = c("AIF1", "C1QA", "CSF1R", "ITGAM", "PTPRC", "TREM2", "RUNX1", "CD83",  "CCL2", "TLR2",  "MERTK", "CCL3", "TMEM119", "TNF", "IL1A", "CX3CR1","P2RY12") # , "CEMIP2"  "HMGB1",
 # myeloid.markers = c("AIF1", "C1QA", "CSF1R", "ITGAM", "PTPRC", "CEMIP2", "TREM2", "RUNX1", "CD83",  "CCL2", "TLR2",  "MERTK", "HMGB1", "TMEM119", "TNF", "IL1A", "CCL3", "CX3CR1","P2RY12")
-postmitotic.motor.neuron <- c("CHAT","MNX1","ISL1","FOXP1","LHX3","ETV4","LMO4","NOTCH1","SIM1")
+postmitotic.motor.neuron <- c("CHAT","MNX1","ISL1","FOXP1","LHX3","ETV4","LMO4","NOTCH1")
 mn.markers = c(postmitotic.motor.neuron,"SYT1","MAP2","STMN2","NEFM","SNAP25","SYT4","NCAM1","SCG2","GAP43","L1CAM","TUBB3","NEFL")
-interneuron.markers <- c("ZIC1","ZIC4","LHX1","LHX5","DRGX","LMX1B","POU4F1","LBX1","EVX1","EN1")
+interneuron.markers <- c("LHX1","LHX5","DRGX","LMX1B","POU4F1","LBX1","EVX1","EN1","SIM1")
 # neuron.markers = c("NPAS4", "NPY", "SST", "CCK", "GAD1", "SYT1", "STMN2", "SYN1") # "ENO2", 
 oligo.markers = c("MBP", "MOG",  "GPR37", "SOX10", "OPALIN", "MOBP", "PLP1") # "CNP", "GALC",
 
@@ -194,10 +195,10 @@ celltype.markers.rnaseq.heatmap
 Motor neuron markers only heatmap
 
 ```{r}
-celltype.marker.df = data.frame("gene_name" = motor.neuron.markers) %>% mutate(group = case_when(gene_name %in% motor.neuron.markers ~ "motor neuron"))
-ipsc_mn_als_datasets$vsd.counts %>% filter(gene_name %in% motor.neuron.markers) %>% group_by(gene_name) %>% filter(n()>1) # any duplicate gene_names?
+celltype.marker.df = data.frame("gene_name" = mn.markers) %>% mutate(group = case_when(gene_name %in% mn.markers ~ "motor neuron"))
+ipsc_mn_als_datasets$vsd.counts %>% filter(gene_name %in% mn.markers) %>% group_by(gene_name) %>% filter(n()>1) # any duplicate gene_names?
 
-vsd_counts.celltype.marker <-  ipsc_mn_als_datasets$vsd.counts  %>% filter(gene_name %in% motor.neuron.markers) %>% select(-gene_id) %>% mutate_if(is.numeric, funs((. - 4.505))) #rowwise() %>%
+vsd_counts.celltype.marker <-  ipsc_mn_als_datasets$vsd.counts  %>% filter(gene_name %in% mn.markers) %>% select(-gene_id) %>% mutate_if(is.numeric, funs((. - 4.505))) #rowwise() %>%
 vsd_counts.celltype.marker.mat <- make_matrix(select(vsd_counts.celltype.marker,-gene_name), pull(vsd_counts.celltype.marker,gene_name))
 celltype.marker.df.filt <- celltype.marker.df %>% filter(gene_name %in% vsd_counts.celltype.marker$gene_name)
 
@@ -214,44 +215,16 @@ motor.neuron.marker.heatmap
 
 ```
 
-Violin plot markers
-
-
-```{r}
-ipsc_mn_als_datasets.counts.mn.markers = ipsc_mn_als_datasets$vsd.counts %>% filter(gene_name %in% motor.neuron.markers) %>% select(-gene_id) %>% pivot_longer(!gene_name, names_to = "sample", values_to = "count")
-ipsc_mn_als_datasets.counts.mn.markers = ipsc_mn_als_datasets$vsd.counts %>% filter(gene_name %in% c("CHAT","MNX1","ISL1")) %>% select(-gene_id) %>% pivot_longer(!gene_name, names_to = "sample", values_to = "count")
-
-# violin plot
-# ipsc_mn_als_datasets_stats_test <- ipsc_mn_als_datasets.counts.mn.markers  %>% t_test(log2FoldChange ~ 1, mu = 0) %>% add_significance()
-# ipsc_mn_als_datasets_stats_test
-# #  .y.            group1 group2          n statistic     df        p p.signif
-# # * <chr>          <chr>  <chr>       <int>     <dbl>  <dbl>    <dbl> <chr>   
-# # 1 log2FoldChange 1      null model 249624      9.18 243561 4.35e-20 ****    
-# ipsc_mn_als_datasets$irfinder %>% cohens_d(log2FoldChange ~ 1, var.equal = TRUE) # Cohens d effect size indicates direction of effect
-
-ipsc_mn_als_datasets.counts.mn.markers.sina_plot <- ggplot(ipsc_mn_als_datasets.counts.mn.markers, aes(x = gene_name, y = count, colour = gene_name)) +
-      geom_violin() + geom_sina(size = 0.5) + geom_boxplot(aes(fill = gene_name), colour = "black", width=0.2, outlier.shape = NA) +
-  # scale_colour_manual(values = c("gold2", "forestgreen")) + scale_fill_manual(values = c("gold2", "forestgreen")) +
-  theme_classic() + theme(legend.position = "none", axis.text=element_text(size=8), axis.title=element_text(size=10)) +
-  # coord_flip() +
-  # coord_cartesian(ylim = c(-3,3)) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  # stat_pvalue_manual(irfinder.lps_untx.vcp_vs_ctrl.stats_test, label = "p.signif", tip.length = 0.001, y.position = 2.7, hide.ns = TRUE) +
-  # stat_pvalue_manual(ipsc_mn_als_datasets_stats_test, label = "p.signif", y.position = 3, hide.ns = FALSE) +
-  ylab(label = expression(Normalised~gene~counts) ) + xlab("")
-ipsc_mn_als_datasets.counts.mn.markers.sina_plot
-
-```
 
 ## Differentiation markers
 
 ```{r}
 # barplots of submarkers
-neural.crest <- c("SOX10","LMX1A","GDF7")          
-dorsal.progenitor <- c("ATOH1","OLIG3","MSX1","PAX3","PAX7","DBX1","DBX2")
+neural.crest <- c("SOX10","NGFR","FOXD3","SNAI1","SNAI2","LMX1A")  # ,"GDF7" roof plate          
+dorsal.progenitor <- c("ATOH1","OLIG3","MSX1","PAX3","PAX7","DBX1","DBX2","IRX3","ASCL1")
 motor.neuron.progenitor <- c("NKX6-1","NKX6-2","OLIG2","GLI2","NKX2-2","FOXA2")
 neuronal <- c("TUBB3","NEFH")
-postmitotic.motor.neuron <- c("CHAT","MNX1","ISL1","FOXP1","LHX3","ETV4","LMO4","NOTCH1","SIM1")
+postmitotic.motor.neuron <- c("CHAT","MNX1","ISL1","FOXP1","LHX3","ETV4","LMO4","NOTCH1")
 differentiation.markers <- c(neural.crest, dorsal.progenitor, motor.neuron.progenitor, postmitotic.motor.neuron, neuronal)
 differentiation.markers.df = data.frame("gene_name" = differentiation.markers) %>% 
   mutate(group = case_when(gene_name %in% neural.crest ~ "neural.crest", gene_name %in% dorsal.progenitor ~ "dorsal.progenitor", gene_name %in% motor.neuron.progenitor ~ "motor.neuron.progenitor", gene_name %in% postmitotic.motor.neuron ~ "postmitotic.motor.neuron", gene_name %in% neuronal ~ "neuronal"))
@@ -267,9 +240,8 @@ differentiation.markers.marker.mat <- make_matrix(select(differentiation.markers
 
 differentiation.markers.df.filt = differentiation.markers.df %>% filter(gene_name %in% differentiation.markers.marker$gene_name)
 
-differentiation.markers.rnaseq.heatmap <- Heatmap(differentiation.markers.marker.mat,  
-          # heatmap_legend_param = list(title = ""), 
-          border = TRUE, show_heatmap_legend = FALSE,
+differentiation.markers.rnaseq.heatmap <- Heatmap(differentiation.markers.marker.mat,
+          border = TRUE, heatmap_legend_param = list(title = "", direction = "horizontal"),
           cluster_rows = FALSE, cluster_row_slices = FALSE, cluster_columns = FALSE,
           row_split = factor(differentiation.markers.df.filt$group, levels = unique(differentiation.markers.df.filt$group)),
           row_order = differentiation.markers.df.filt$gene_name,
@@ -283,10 +255,26 @@ differentiation.markers.rnaseq.heatmap
 
 ## HOX markers
 
+Region identity of iPSN
+
 ```{r}
 # HOX gene markers: HOXA1 as a marker of upper rhombomeres, HOXB4 and HOXA5 for lower cervical/brachial, HOXC6 and HOXC8 for brachial motor neuron column, HOXC9 for thoracic, and HOXD10 for lumbar.
-HOX.markers <- c("HOXA1", "HOXB4", "HOXA5", "HOXC6", "HOXC8", "HOXC9", "HOXD10")
-HOX.markers.df <- data.frame(row.names = HOX.markers, gene_name = factor(HOX.markers))# Annotation for IN & MN markers
+# HOX.markers <- c("HOXA1", "HOXA3", "HOXA4", "HOXA5","HOXA6", "HOXA7", "HOXA9", "HOXA10", "HOXA11", "HOXA13", # HOX1
+#                  "HOXB1","HOXB5","HOXB9","HOXB6","HOXB7","HOXB2","HOXB3","HOXB4","HOXB8", #HOX2
+#                  "HOXC9","HOXC5","HOXC13","HOXC12","HOXC4","HOXC6","HOXC8", # HOX3
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX4
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX5
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX6
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX7
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX8
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX9
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX10
+#                  "HOXD1","HOXD3","HOXD11","HOXD4","HOXD8","HOXD9","HOXD10", # HOX11
+#                  "HOXB4", "HOXA5", "HOXC5", "HOXC6", "HOXC8", "HOXC9", "HOXD10","TLX1","HOXD12","HOXA13")
+
+HOX.markers <- gtf %>% filter(grepl("^HOX[A-D][0-9]+", gene_name)) %>% distinct(gene_name) %>% pull(gene_name)
+
+HOX.markers.df <- data.frame(row.names = HOX.markers, gene_name = factor(HOX.markers, levels = HOX.markers)) 
 
 HOX.markers.marker <- ipsc_mn_als_datasets$vsd.counts %>% distinct(gene_name, .keep_all = TRUE) %>% 
   filter(gene_name %in% HOX.markers.df$gene_name) %>% #, rowSums(across(where(is.numeric))) > 162) %>% 
@@ -299,11 +287,11 @@ HOX.markers.df.filt = HOX.markers.df %>% filter(gene_name %in% HOX.markers.marke
 HOX.markers.rnaseq.heatmap <- Heatmap(HOX.markers.marker.mat, 
           show_heatmap_legend = FALSE, #heatmap_legend_param = list(title = ""), #heatmap_legend_param = list(title = "", direction = "horizontal"), #, annotation_legend_side = "bottom"), 
           border = TRUE, 
-          cluster_rows = FALSE, cluster_row_slices = FALSE, cluster_columns = FALSE,
-          # row_split = factor(HOX.markers.df.filt$group, levels = unique(HOX.markers.df.filt$group)),
+          cluster_rows = TRUE, cluster_row_slices = FALSE, cluster_columns = FALSE,
           row_order = HOX.markers.df.filt$gene_name,
           row_title = "HOX markers", row_title_gp = gpar(fontsize = 8), row_names_gp = gpar(fontsize = 7),  #, #, col = c(rep("red", 10), rep("blue", 8)))
-          # right_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = rep("white",5)), labels = c("Neural\ncrest", "Dorsal\nprogen", "Motor\nneuron\nprogen", "Post\nmotitic\nmotor\neuron", "Neuronal"), labels_gp = gpar(fontsize = 8), labels_rot = 0)),
+          # row_split = factor(differentiation.markers.df.filt$group, levels = unique(differentiation.markers.df.filt$group)),
+          # right_annotation = rowAnnotation(markers = anno_block(gp = gpar(fill = rep("white",4)), labels = c("Hindbrain", "Cervical", "Thoracic", "Lumbar"), labels_gp = gpar(fontsize = 8), labels_rot = 0)),
           column_title = NULL, show_column_names = FALSE,
           bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",14)), labels = c("Catanese", "Lee", "Dafianca", "Luisier", "Mitchell","Wang","Moccia","Sareen","Sterneckert","Kapeli","Melamed","DeSantis","Smith","Signapore"), labels_gp = gpar(fontsize = 6), labels_rot = 90)), column_split = c(rep(1,12),rep(2,9),rep(3,22),rep(4,6),rep(5,6),rep(6,4),rep(7,5),rep(8,8),rep(9,6),rep(10,6),rep(11,4),rep(12,6),rep(13,5),rep(14,4)))
 HOX.markers.rnaseq.heatmap
@@ -314,9 +302,13 @@ HOX.markers.rnaseq.heatmap
 
 
 ```{r}
-figS2.merged <- celltype.markers.rnaseq.heatmap %v% differentiation.markers.rnaseq.heatmap %v% HOX.markers.rnaseq.heatmap 
-png("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/figS2.heatmaps.merged.png",width=10,height=16,units="in",res=800, type="cairo")
-draw(figS2.merged, heatmap_legend_side = "top")
+png("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/figS2.heatmap.cell.type.markers.png",width=8.25,height=11.75,units="in",res=800, type="cairo")
+draw(celltype.markers.rnaseq.heatmap, heatmap_legend_side = "top")
+dev.off()
+
+figS3.merged <- differentiation.markers.rnaseq.heatmap %v% HOX.markers.rnaseq.heatmap 
+png("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/figS3.heatmaps.differentiation.hox.merged.png",width=8.25,height=11.75,units="in",res=800, type="cairo")
+draw(figS3.merged, heatmap_legend_side = "top")
 dev.off()
 
 figS2.merged <- ggarrange(
@@ -346,24 +338,7 @@ ipsc_mn_mutants_bind_datasets.res %>% filter(padj < 0.05) %>% count(mutation)
 # 2 FUS       1524
 # 3 SOD1      5845
 # 4 TARDBP    4367
-# 5 VCP        102
-
-ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets$res, gene_name, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange), 
-          select(ipsc_mn_fus_datasets$res, gene_name, padj.fus = padj, log2FoldChange.fus = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_tardbp_datasets$res, gene_name, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_sod1_datasets$res, gene_name, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_vcp_datasets$res, gene_name, padj.vcp = padj, log2FoldChange.vcp = log2FoldChange))
-ipsc_mn_mutants_join_datasets.res.labels = ipsc_mn_mutants_join_datasets.res %>% filter(c(padj.c9orf72 < 0.05 & padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05) | 
-                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
-                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
-                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05)) %>% pull(gene_name)
-ipsc_mn_mutants_combined_datasets.volcano <- volcano_plot_deseq(data = ipsc_mn_mutants_bind_datasets.res, labels_list = NULL) + xlab(expression(log[2]~fold~change~ALS:CTRL)) + 
-  coord_cartesian(xlim = c(-8,8), ylim = c(0,15)) +
-  facet_wrap(~ mutation, scales = "free") #+
-  # geom_segment(aes(x = 3, xend = 9, y= 23, yend= 23), arrow=arrow(length=unit(0.3,"cm")), color = "firebrick2" ) +
-  # geom_segment(aes(x = -3, xend = -9, y= 23, yend= 23),arrow=arrow(length=unit(0.3,"cm")), color = "dodgerblue2") +
-  # annotate("text", x = 6, y = 25, label = "Up in ALS", color = "firebrick2", size = 2.8) + annotate("text", x = -6, y = 25, label = "Down in ALS", color = "dodgerblue2", size = 2.8)
-ipsc_mn_mutants_combined_datasets.volcano
+# 5 VCP         29
 
 
 
@@ -374,9 +349,7 @@ volcano_plot <- function(de_res, title = NULL, subtitle = NULL, annotate_by = NU
   
   plot <- de_res %>% mutate( pvalue = ifelse( pvalue < 1e-16, Inf, pvalue)) %>% #threshold at 1e16
     ggplot(aes(x = log2FoldChange, y = -log10(pvalue))) +  #geom_point(aes(colour = class ), size = 0.5) +
-    # rasterise(
-      geom_point(aes(colour = class ), size = 0.5) +
-      # , dpi = 300) +
+    ggrastr::rasterise(geom_point(aes(colour = class ), size = 0.5), dpi = 300) +
     scale_colour_manual(values = c("non_sig up" = "gray", 
                                    "non_sig down" = "gray",
                                    "sig up" = "#EB7F56", 
@@ -420,8 +393,6 @@ ipsc_mn_mutants_join_datasets.res.labels = ipsc_mn_mutants_join_datasets.res %>%
                                                                                         c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
                                                                                         c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
                                                                                         c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05)) %>% pull(gene_name)
-# library(raster)
-
 volcano_multiplot <- 
   volcano_plot(ipsc_mn_c9orf72_datasets$res, "C9orf72", 
                subtitle = "21 Controls vs 17 C9orf72",
@@ -441,6 +412,32 @@ volcano_multiplot <-
   plot_layout(nrow = 1)
 volcano_multiplot
 
+ipsc_mn_mutants_join_datasets.res.labels[ipsc_mn_mutants_join_datasets.res.labels %in% ALS_genes]
+ipsc_mn_mutants_join_datasets.res.labels[ipsc_mn_mutants_join_datasets.res.labels %in% RNA_BINDING_PROTEINS]
+ipsc_mn_mutants_join_datasets.res.labels[ipsc_mn_mutants_join_datasets.res.labels %in% nucleocytoplasmic_genes]
+ipsc_mn_mutants_join_datasets.res.labels[ipsc_mn_mutants_join_datasets.res.labels %in% go.pathways.msigdb$GOBP_MITOCHONDRION_ORGANIZATION]
+
+
+
+# old facet_wrap
+ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets$res, gene_name, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange), 
+          select(ipsc_mn_fus_datasets$res, gene_name, padj.fus = padj, log2FoldChange.fus = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_tardbp_datasets$res, gene_name, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_sod1_datasets$res, gene_name, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_vcp_datasets$res, gene_name, padj.vcp = padj, log2FoldChange.vcp = log2FoldChange))
+ipsc_mn_mutants_join_datasets.res.labels = ipsc_mn_mutants_join_datasets.res %>% filter(c(padj.c9orf72 < 0.05 & padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05) | 
+                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
+                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05 & padj.vcp < 0.05) | 
+                                                                                        c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05)) %>% pull(gene_name)
+ipsc_mn_mutants_combined_datasets.volcano <- volcano_plot_deseq(data = ipsc_mn_mutants_bind_datasets.res, labels_list = NULL) + xlab(expression(log[2]~fold~change~ALS:CTRL)) + 
+  coord_cartesian(xlim = c(-8,8), ylim = c(0,15)) +
+  facet_wrap(~ mutation, scales = "free") #+
+  # geom_segment(aes(x = 3, xend = 9, y= 23, yend= 23), arrow=arrow(length=unit(0.3,"cm")), color = "firebrick2" ) +
+  # geom_segment(aes(x = -3, xend = -9, y= 23, yend= 23),arrow=arrow(length=unit(0.3,"cm")), color = "dodgerblue2") +
+  # annotate("text", x = 6, y = 25, label = "Up in ALS", color = "firebrick2", size = 2.8) + annotate("text", x = -6, y = 25, label = "Down in ALS", color = "dodgerblue2", size = 2.8)
+ipsc_mn_mutants_combined_datasets.volcano
+
+
 ```
 
 
@@ -452,43 +449,62 @@ volcano_multiplot
 ipsc_mn_mutants_bind_datasets.res = bind_rows(mutate(ipsc_mn_c9orf72_datasets$res, mutation = "C9orf72"), mutate(ipsc_mn_tardbp_datasets$res, mutation = "TARDBP"), mutate(ipsc_mn_sod1_datasets$res, mutation = "SOD1"), mutate(ipsc_mn_fus_datasets$res, mutation = "FUS"),mutate(ipsc_mn_vcp_datasets$res, mutation = "VCP"))
 ipsc_mn_mutants_bind_datasets.res.upset = ipsc_mn_mutants_bind_datasets.res %>% filter(padj < 0.05) %>% select(mutation, gene_name) %>% group_by(gene_name) %>% summarise(mutations = list(mutation)) %>%
   ggplot(aes(x = mutations)) + geom_bar() +
-      geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+      geom_text(stat='count', aes(label=after_stat(count)), vjust=-1, size = 2.8) +
     scale_x_upset(order_by = "degree")  + # n_intersections = 20
-    scale_y_continuous(breaks = NULL, lim = c(0, 5000), name = "") +
+    scale_y_continuous(breaks = NULL, lim = c(0, 2600), name = "") +
   theme_classic() +  theme(legend.title = element_blank(), legend.position = "none", axis.text=element_text(size=8), axis.title=element_text(size=10)) + 
       ylab(expression()) +
     theme_combmatrix(combmatrix.label.make_space = TRUE)
 ipsc_mn_mutants_bind_datasets.res.upset
 
-
 ipsc_mn_mutants_join_datasets.res %>% filter(padj.sod1 < 0.05, padj.tardbp < 0.05, padj.fus < 0.05, padj.c9orf72 < 0.05)
 ipsc_mn_mutants_join_datasets.res %>% filter(padj.sod1 < 0.05, padj.tardbp < 0.05, padj.fus < 0.05, padj.vcp < 0.05)
 
+# Overlap UP DEGs
+ipsc_mn_mutants_bind_datasets.upregulated.res.upset = ipsc_mn_mutants_bind_datasets.res %>% filter(padj < 0.05, log2FoldChange > 0) %>% select(mutation, gene_name) %>% group_by(gene_name) %>% summarise(mutations = list(mutation)) %>%
+  ggplot(aes(x = mutations)) + geom_bar() +
+      geom_text(stat='count', aes(label=after_stat(count)), vjust=-1, size = 2.8) +
+    scale_x_upset(order_by = "degree")  + # n_intersections = 20
+    scale_y_continuous(breaks = NULL, lim = c(0, 2500), name = "") +
+  theme_classic() +  theme(legend.title = element_blank(), legend.position = "none", axis.text=element_text(size=8), axis.title=element_text(size=10)) + 
+      ylab(expression()) +
+    theme_combmatrix(combmatrix.label.make_space = TRUE)
+ipsc_mn_mutants_bind_datasets.upregulated.res.upset
+
+# Overlap DOWN DEGs
+ipsc_mn_mutants_bind_datasets.downregulated.res.upset = ipsc_mn_mutants_bind_datasets.res %>% filter(padj < 0.05, log2FoldChange < 0) %>% select(mutation, gene_name) %>% group_by(gene_name) %>% summarise(mutations = list(mutation)) %>%
+  ggplot(aes(x = mutations)) + geom_bar() +
+      geom_text(stat='count', aes(label=after_stat(count)), vjust=-1, size = 2.8) +
+    scale_x_upset(order_by = "degree")  + # n_intersections = 20
+    scale_y_continuous(breaks = NULL, lim = c(0, 3000), name = "") +
+  theme_classic() +  theme(legend.title = element_blank(), legend.position = "none", axis.text=element_text(size=8), axis.title=element_text(size=10)) + 
+      ylab(expression()) +
+    theme_combmatrix(combmatrix.label.make_space = TRUE)
+ipsc_mn_mutants_bind_datasets.downregulated.res.upset
+
+# Overlap ALL DEGs
+ipsc_mn_mutants_bind_datasets.dir.res = bind_rows(mutate(filter(ipsc_mn_c9orf72_datasets$res, log2FoldChange > 0), mutation = "C9orf72 Up"), mutate(filter(ipsc_mn_c9orf72_datasets$res, log2FoldChange < 0), mutation = "C9orf72 Down"),
+                                              mutate(filter(ipsc_mn_tardbp_datasets$res, log2FoldChange > 0), mutation = "TARDBP Up"), mutate(filter(ipsc_mn_tardbp_datasets$res, log2FoldChange < 0), mutation = "TARDBP Down"),
+                                              mutate(filter(ipsc_mn_fus_datasets$res, log2FoldChange > 0), mutation = "FUS Up"), mutate(filter(ipsc_mn_fus_datasets$res, log2FoldChange < 0), mutation = "FUS Down"),
+                                              mutate(filter(ipsc_mn_sod1_datasets$res, log2FoldChange > 0), mutation = "SOD1 Up"), mutate(filter(ipsc_mn_sod1_datasets$res, log2FoldChange < 0), mutation = "SOD1 Down"),
+                                              mutate(filter(ipsc_mn_vcp_datasets$res, log2FoldChange > 0), mutation = "VCP Up"), mutate(filter(ipsc_mn_vcp_datasets$res, log2FoldChange < 0), mutation = "VCP Down"))
+ipsc_mn_mutants_bind_datasets.res.upset = ipsc_mn_mutants_bind_datasets.dir.res %>% filter(padj < 0.05) %>% select(mutation, gene_name) %>% group_by(gene_name) %>% summarise(mutations = list(mutation)) %>%
+  ggplot(aes(x = mutations)) + geom_bar() +
+      geom_text(stat='count', aes(label=after_stat(count)), vjust=-1, size = 2.8) +
+    scale_x_upset(order_by = "degree")  + # n_intersections = 20
+    scale_y_continuous(breaks = NULL, lim = c(0, 4500), name = "") +
+  theme_classic() +  theme(legend.title = element_blank(), legend.position = "none", axis.text=element_text(size=8), axis.title=element_text(size=10)) + 
+      ylab(expression()) +
+    theme_combmatrix(combmatrix.label.make_space = TRUE)
+ipsc_mn_mutants_bind_datasets.res.upset
+
+# SOD1 and TARDBP show many opposing changes
 ```
 
 
-### Overlap mutations
+Fisher test overlap mutations
 
 ```{r}
-patani.res.dge.up <- patani$res %>% filter(padj < 0.05, log2FoldChange > 0) %>% pull(gene_name)
-patani.res.dge.down <- patani$res %>% filter(padj < 0.05, log2FoldChange < 0) %>% pull(gene_name)
-tyzack.res.dge.up <- tyzack$res %>% filter(padj < 0.05, log2FoldChange > 0) %>% pull(gene_name)
-tyzack.res.dge.down <- tyzack$res %>% filter(padj < 0.05, log2FoldChange < 0) %>% pull(gene_name)
-ipsc_mn_c9orf72_datasets.res.dge.up <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05, log2FoldChange > 0) %>% pull(gene_name)
-ipsc_mn_c9orf72_datasets.res.dge.down <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05, log2FoldChange < 0) %>% pull(gene_name)
-neyrinck.res.dge.up <- neyrinck$res %>% filter(padj < 0.05, log2FoldChange > 0) %>% pull(gene_name)
-neyrinck.res.dge.down <- neyrinck$res %>% filter(padj < 0.05, log2FoldChange < 0) %>% pull(gene_name)
-
-# ggvenn
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck.up_genes <- list("VCP" = patani.res.dge.up, "SOD1" = tyzack.res.dge.up, "C9orf72" = ipsc_mn_c9orf72_datasets.res.dge.up, "FUS" = neyrinck.res.dge.up)
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck.down_genes <- list("VCP" = patani.res.dge.down, "SOD1" = tyzack.res.dge.down, "C9orf72" = ipsc_mn_c9orf72_datasets.res.dge.down, "FUS" = neyrinck.res.dge.down)
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_up <- ggvenn(patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck.up_genes, fill_color = c("dodgerblue3", "firebrick1", "forestgreen", "gold2"), show_percentage = FALSE, stroke_size = 0.4, set_name_size = 3.7) + labs(subtitle = "Overlap Up")  + theme(plot.subtitle = element_text(hjust = 0.5, colour = "firebrick2"), plot.margin = unit(c(0, -1, -1, -1), "lines"))
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_up
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_down <- ggvenn(patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck.down_genes, fill_color = c("dodgerblue3", "firebrick1", "forestgreen", "gold2"), show_percentage = FALSE, stroke_size = 0.4, set_name_size = 3.7) + labs(subtitle = "Overlap Down") + theme(plot.subtitle = element_text(hjust = 0.5, colour = "dodgerblue2"), plot.margin = unit(c(0, -1, -1, -1), "lines"))
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_down
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn = ggarrange(patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_up, patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_down, row = 2, ncol = 1)
-patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn
-
 # Fisher exact overlap test
 unique(c(ipsc_mn_c9orf72_datasets.res.dge.up, patani.res.dge.up)) # 923
 DGEup_C9ORF72_VCP <- ipsc_mn_c9orf72_datasets.res.dge.up[ipsc_mn_c9orf72_datasets.res.dge.up %in% patani.res.dge.up] # 15 # 1.6%
@@ -634,7 +650,29 @@ IRdown_A1_ALS[IRdown_A1_ALS %in% all.reactivity.go] # "HSPG2"   "PSMD11"  "NFKBI
 # ggsave(ipsc_mn_c9orf72_datasets_barbar_venn_down, filename = "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/ipsc_mn_c9orf72_datasets_barbar_venn_down.png", height = 3, width = 3)
 ```
 
-# Fig S3 Gene expression mutations scatters
+# Table S2. DEG overlap in iPSN ALS datasets
+
+```{r}
+ipsc_mn_mutants_join_datasets.res = mutate(select(ipsc_mn_c9orf72_datasets$res, gene_name, gene_id, padj.c9orf72 = padj, lfc.c9orf72 = log2FoldChange), direction.c9orf72 = case_when(padj.c9orf72 < 0.05 & lfc.c9orf72 > 0 ~ "up", padj.c9orf72 < 0.05 & lfc.c9orf72 < 0 ~ "down", TRUE ~ "non-significant")) %>%
+  full_join(mutate(select(ipsc_mn_fus_datasets$res, gene_name, gene_id, padj.fus = padj, lfc.fus = log2FoldChange), direction.fus = case_when(padj.fus < 0.05 & lfc.fus > 0 ~ "up", padj.fus < 0.05 & lfc.fus < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_tardbp_datasets$res, gene_name, gene_id,  padj.tardbp = padj, lfc.tardbp = log2FoldChange), direction.tardbp = case_when(padj.tardbp < 0.05 & lfc.tardbp > 0 ~ "up", padj.tardbp < 0.05 & lfc.tardbp < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_sod1_datasets$res, gene_name, gene_id, padj.sod1 = padj, lfc.sod1 = log2FoldChange), direction.sod1 = case_when(padj.sod1 < 0.05 & lfc.sod1 > 0 ~ "up", padj.sod1 < 0.05 & lfc.sod1 < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_vcp_datasets$res, gene_name, gene_id, padj.vcp = padj, lfc.vcp = log2FoldChange), direction.vcp = case_when(padj.vcp < 0.05 & lfc.vcp > 0 ~ "up", padj.vcp < 0.05 & lfc.vcp < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  # arrange() %>%
+  select(gene_name, gene_id, everything())
+
+write_csv(ipsc_mn_mutants_join_datasets.res, "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/TableS3.overlap_als_individual_datasets.csv")
+
+# VCP.SOD1.C9ORF72.FUS_overlap <- cbindX(arrange(as_tibble_col(DGEup_C9ORF72_VCP, column_name = "C9ORF72_VCP_up"), C9ORF72_VCP_up),  
+#                          arrange(as_tibble_col(DGEdown_C9ORF72_VCP, column_name = "C9ORF72_VCP_down"), C9ORF72_VCP_down),  
+#                          arrange(as_tibble_col(DGEup_SOD1_VCP, column_name = "SOD1_VCP_up"), SOD1_VCP_up),  
+#                          arrange(as_tibble_col(DGEdown_SOD1_VCP, column_name = "SOD1_VCP_down"), SOD1_VCP_down))
+# VCP.SOD1.C9ORF72.FUS_overlap[is.na(VCP.SOD1.C9ORF72.FUS_overlap)] <- ""
+# write_csv(VCP.SOD1.C9ORF72.FUS_overlap, "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/Table.S3.VCP.SOD1.C9ORF72.FUS_overlap.csv")
+```
+
+
+# Fig S3-4 Gene expression mutations scatters
 
 Scatter correlation of mutants
 
@@ -713,73 +751,80 @@ ggsave(lfc_plot, filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/exp
 
 ```
 
-# Fig S3 GO terms
+# Fig S5 GO terms
 
 ```{r}
 # c9orf72
-ipsc_mn_c9orf72_datasets.rrvgo = gprofiler2rrvgo(ipsc_mn_c9orf72_datasets$res , query1 = "Down", query2 = "Up", GO_cat = "BP", sig.filter = "padj", species = "human") # up adhesion
+ipsc_mn_c9orf72_datasets.rrvgo = gprofiler2rrvgo(ipsc_mn_c9orf72_datasets$res , query1 = "Down", query2 = "Up", GO_cat = "BP", sig.filter = "padj", species = "human")
+ipsc_mn_c9orf72_datasets.rrvgo =  ipsc_mn_c9orf72_datasets.rrvgo %>% mutate(term = gsub("homophilic cell adhesion via plasma membrane adhesion molecules", "plasma membrane adhesion", term), parentTerm = term)
 ipsc_mn_c9orf72_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_c9orf72_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
 
 # sod1
 ipsc_mn_sod1_datasets.rrvgo = gprofiler2rrvgo(ipsc_mn_sod1_datasets$res , query1 = "Down", query2 = "Up", GO_cat = "BP", sig.filter = "padj", species = "human")
+ipsc_mn_sod1_datasets.rrvgo =  ipsc_mn_sod1_datasets.rrvgo %>%  mutate(term = gsub("regulation of ", "", term), parentTerm = term)
 ipsc_mn_sod1_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_sod1_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
 
 # fus
 ipsc_mn_fus_datasets.rrvgo = gprofiler2rrvgo(ipsc_mn_fus_datasets$res , query1 = "Down", query2 = "Up", GO_cat = "BP", sig.filter = "padj", species = "human")
+ipsc_mn_fus_datasets.rrvgo =  ipsc_mn_fus_datasets.rrvgo %>%  mutate(term = gsub("regulation of ", "", term), term = gsub("homophilic cell adhesion via plasma membrane adhesion molecules", "plasma membrane adhesion", term), parentTerm = term)
 ipsc_mn_fus_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_fus_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
 
 # tardbp
 ipsc_mn_tardbp_datasets.rrvgo = gprofiler2rrvgo(ipsc_mn_tardbp_datasets$res , query1 = "Down", query2 = "Up", GO_cat = "BP", sig.filter = "padj", species = "human")
+ipsc_mn_tardbp_datasets.rrvgo =  ipsc_mn_tardbp_datasets.rrvgo %>%  mutate(term = gsub("regulation of ", "", term), parentTerm = term)
 ipsc_mn_tardbp_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_tardbp_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
 
 # vcp
-ipsc_mn_vcp_datasets.rrvgo = gprofiler2rrvgo(filter(ipsc_mn_vcp_datasets$res, log2FoldChange > 0), query1 = "Up", query2 = NULL, GO_cat = "BP", sig.filter = "padj", species = "human")
-ipsc_mn_vcp_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_vcp_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
+# ipsc_mn_vcp_datasets.rrvgo = gprofiler2rrvgo(filter(ipsc_mn_vcp_datasets$res, log2FoldChange < 0), query1 = "Down", query2 = NULL, GO_cat = "BP", sig.filter = "padj", species = "human")
+# ipsc_mn_vcp_datasets.rrvgo.plot = rrvgo_plot(gprofiler2rrvgo = ipsc_mn_vcp_datasets.rrvgo, n_terms = 10, remove_terms = NULL, colours = 2, cols =  c("firebrick2", "dodgerblue2"), label_angle = 0)
 
-ggarrange(ipsc_mn_c9orf72_datasets.rrvgo.plot, ipsc_mn_sod1_datasets.rrvgo.plot, ipsc_mn_fus_datasets.rrvgo.plot, ipsc_mn_tardbp_datasets.rrvgo.plot, ipsc_mn_vcp_datasets.rrvgo.plot) # 
+de_go_terms_mutations_merged = ggarrange(NULL,ipsc_mn_c9orf72_datasets.rrvgo.plot,NULL, ipsc_mn_sod1_datasets.rrvgo.plot,NULL, ipsc_mn_fus_datasets.rrvgo.plot,NULL, ipsc_mn_tardbp_datasets.rrvgo.plot, nrow = 8, ncol = 1, labels = c("C9orf72", "", "SOD1", "", "FUS", "", "TARDBP",""), heights = c(0.1,0.8,0.1,1.3,0.1,0.9,0.1,1.3)) #, ipsc_mn_vcp_datasets.rrvgo.plot) # no terms for VCP
+de_go_terms_mutations_merged
+ggsave(de_go_terms_mutations_merged, filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/figS5.de_go_terms_mutations_merged.png", height = 11.75, width = 8.25)
 
-ipsc_mn_c9orf72_datasets.dge_genes <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") # create list of IR up/down & Expression up/down genes
-ipsc_mn_c9orf72_datasets.dge_genes <- gost(ipsc_mn_c9orf72_datasets.dge_genes) # run gprofiler2 on all groups - runs on all KEGG, GO, REAC,TF, WP pathways simultaneously
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt <- ipsc_mn_c9orf72_datasets.dge_genes$result %>% filter(!str_detect(source, "TF|CORUM")) %>% arrange( -log10(pvalue) ) %>% 
-  mutate(query = case_when(query == "query_1" ~ " Down in C9orf72 ", query == "query_2" ~ " Up in C9orf72 "), term_name = as.factor(term_name)) 
-ipsc_mn_c9orf72_datasets.dge_gprofiles_down <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Down in C9orf72 ")
-ipsc_mn_c9orf72_datasets.dge_gprofiles_up <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Up in C9orf72 ")
-paste('"',unique(ipsc_mn_c9orf72_datasets.dge_gprofiles_down$term_name),'",', sep = "", collapse = '\n') %>% cat()
-down_list <- c(
-# "Senescence-Associated Secretory Phenotype (SASP)",
-"synapse",
-"chromatin assembly",
-"Oxidative Stress Induced Senescence",
-"neuron HOX",
-"neuron projection",
-"DNA methylation",
-"chromosome organization",
-"generation of neurons",
-"nervous system development",
-"mitotic cell cycle")
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_down <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Down in C9orf72 ")  %>% filter(term_name %in% down_list)
 
-paste('"',unique(ipsc_mn_c9orf72_datasets.dge_gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
-up_list <- c(
-"integrin binding",
-"actin cytoskeleton",
-"response to wounding",
-"anchoring junction",
-"Collagen degradation",
-# "regulation of cellular component movement",
-"Collagen formation",
-"cell adhesion",
-"collagen fibril organization",
-"endoplasmic reticulum lumen",
-"extracellular matrix")
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_up <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Up in C9orf72 ")  %>% filter(term_name %in% up_list)
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined <- bind_rows(ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_down, ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_up) %>% 
-  mutate(query = factor(query, levels = c(" Up in C9orf72 ", " Down in C9orf72 ")))
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub("extracellular matrix structural constituent conferring compression resistance", "extracellular matrix", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub("enzyme linked receptor protein signaling pathway", "enzyme linked receptor signaling", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
-ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub(" pathway", "", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
-ipsc_mn_c9orf72_datasets.go_curated <- curated_profiles(gprofiles = ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined) + theme(legend.position = "none")
-ipsc_mn_c9orf72_datasets.go_curated
+# ipsc_mn_c9orf72_datasets.dge_genes <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") # create list of IR up/down & Expression up/down genes
+# ipsc_mn_c9orf72_datasets.dge_genes <- gost(ipsc_mn_c9orf72_datasets.dge_genes) # run gprofiler2 on all groups - runs on all KEGG, GO, REAC,TF, WP pathways simultaneously
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt <- ipsc_mn_c9orf72_datasets.dge_genes$result %>% filter(!str_detect(source, "TF|CORUM")) %>% arrange( -log10(pvalue) ) %>% 
+#   mutate(query = case_when(query == "query_1" ~ " Down in C9orf72 ", query == "query_2" ~ " Up in C9orf72 "), term_name = as.factor(term_name)) 
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_down <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Down in C9orf72 ")
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_up <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Up in C9orf72 ")
+# paste('"',unique(ipsc_mn_c9orf72_datasets.dge_gprofiles_down$term_name),'",', sep = "", collapse = '\n') %>% cat()
+# down_list <- c(
+# # "Senescence-Associated Secretory Phenotype (SASP)",
+# "synapse",
+# "chromatin assembly",
+# "Oxidative Stress Induced Senescence",
+# "neuron HOX",
+# "neuron projection",
+# "DNA methylation",
+# "chromosome organization",
+# "generation of neurons",
+# "nervous system development",
+# "mitotic cell cycle")
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_down <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Down in C9orf72 ")  %>% filter(term_name %in% down_list)
+# 
+# paste('"',unique(ipsc_mn_c9orf72_datasets.dge_gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
+# up_list <- c(
+# "integrin binding",
+# "actin cytoskeleton",
+# "response to wounding",
+# "anchoring junction",
+# "Collagen degradation",
+# # "regulation of cellular component movement",
+# "Collagen formation",
+# "cell adhesion",
+# "collagen fibril organization",
+# "endoplasmic reticulum lumen",
+# "extracellular matrix")
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_up <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " Up in C9orf72 ")  %>% filter(term_name %in% up_list)
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined <- bind_rows(ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_down, ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_up) %>% 
+#   mutate(query = factor(query, levels = c(" Up in C9orf72 ", " Down in C9orf72 ")))
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub("extracellular matrix structural constituent conferring compression resistance", "extracellular matrix", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub("enzyme linked receptor protein signaling pathway", "enzyme linked receptor signaling", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
+# ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name <- gsub(" pathway", "", ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined$term_name)
+# ipsc_mn_c9orf72_datasets.go_curated <- curated_profiles(gprofiles = ipsc_mn_c9orf72_datasets.dge_gprofiles_filt_combined) + theme(legend.position = "none")
+# ipsc_mn_c9orf72_datasets.go_curated
 
 # which genes are driving the terms
 ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msigdb$GO_GABA_RECEPTOR_COMPLEX)
@@ -788,7 +833,7 @@ ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.
 ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msigdb$GO_EXTRACELLULAR_MATRIX_STRUCTURAL_CONSTITUENT_CONFERRING_COMPRESSION_RESISTANCE)
 ```
 
-# Fig S4 GSEA pathways
+# Fig S6 GSEA pathways
 
 ```{r}
 #de_res <- de_res_final
@@ -885,8 +930,8 @@ hallmark_gsea_plot <- function(df, plot_all = FALSE){
     select(set, ID, NES) %>%
     pivot_wider(names_from = set, values_from = NES) %>%
     rowwise() %>%
-    mutate(FUS = NA, # FUS not enriched for any pathway
-           mean_nes = mean( c(C9orf72, TARDBP, FUS, SOD1, VCP), na.rm = TRUE)) %>%
+    mutate(FUS = NA, VCP = NA, # not enriched for any pathway
+           mean_nes = mean( c(C9orf72, TARDBP, FUS, SOD1), na.rm = TRUE)) %>%
     arrange( mean_nes) %>%
     mutate(ID = factor(ID, levels = ID)) 
     
@@ -927,6 +972,8 @@ h_plot
 
 h_plot_all <- hallmark_gsea_plot(ipsc_mn_mutations_hallmark_gsea, plot_all = TRUE)
 h_plot_all
+ggsave(h_plot_all, filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/figS6.hallmarks_gsea_plot_all.png", height = 11.75, width = 8.25)
+
 
 go.pathways.msigdb
 
@@ -1007,96 +1054,21 @@ go.pathways.gsea_plot
 
 
 
-
-## Merge
-
-```{r}
-# ipsc_mn_c9orf72_datasets.tyzack.neyrink.gsea = ggarrange(ipsc_mn_c9orf72_datasets.glutamate.gseaplot, tyzack.glutamate.gseaplot, neyrinck.glutamate.gseaplot, als_datasets.glutamate.uptake.gseaplot, nrow = 2, ncol = 2)
-# ipsc_mn_c9orf72_datasets.phagocytosis.gseaplot, tyzack.phagocytosis.gseaplot, neyrinck.phagocytosis.gseaplot,
-
-figS3.merged <- ggarrange(
-  ggarrange(ipsc_mn_c9orf72_datasets.volcano, tyzack.volcano, neyrinck.volcano, ncol = 3, labels = c("A", "B", "C")),
-  ggarrange(ipsc_mn_c9orf72_datasets.go_curated, tyzack.go_curated, neyrinck.go_curated, ncol = 3, labels = c("D", "E", "F")),
-  ggarrange(ipsc_mn_c9orf72_datasets.glutamate.gseaplot, tyzack.glutamate.gseaplot, neyrinck.glutamate.gseaplot, ncol = 3, labels = c("G","H","I")),  
-  ggarrange(patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_up, patani.tyzack.ipsc_mn_c9orf72_datasets.neyrinck_venn_down, ncol = 2, labels = c("J", "K")),
-  nrow = 4,heights = c(1,0.9,0.9,1))
-# figS3.merged
-ggsave(figS3.merged, filename = "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/figS3.merged.png", height = 13, width = 10)
-
-
-  
-patani.ipsc_mn_c9orf72_datasets.tyzack.gseaplot.merged = ggarrange(patani.phagocytosis.gseaplot, patani.glutamate.gseaplot, ipsc_mn_c9orf72_datasets.phagocytosis.gseaplot, ipsc_mn_c9orf72_datasets.glutamate.gseaplot, tyzack.phagocytosis.gseaplot, tyzack.glutamate.gseaplot, ncol = 2, nrow = 3, labels = )
-ggsave(patani.ipsc_mn_c9orf72_datasets.tyzack.gseaplot.merged, filename = "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/patani.ipsc_mn_c9orf72_datasets.tyzack.gseaplot.merged.png", height = 8, width = 8)
-
-```
-
-# Table S3. DEG overlap in hiPSC ALS datasets
-
-```{r}
-patani.dge <- patani$res %>% select(gene_name, hsap.ensembl = gene_id, log2FC.VCP = log2FoldChange, FDR.VCP = padj) %>% mutate(direction.VCP = case_when(FDR.VCP < 0.05 & log2FC.VCP > 0 ~ "up", FDR.VCP < 0.05 & log2FC.VCP < 0 ~ "down", TRUE ~ "non-significant"))
-ipsc_mn_c9orf72_datasets.dge <- ipsc_mn_c9orf72_datasets$res %>% select(gene_name, hsap.ensembl = gene_id, log2FC.C9orf72 = log2FoldChange, FDR.C9orf72 = padj) %>% mutate(direction.C9orf72 = case_when(FDR.C9orf72 < 0.05 & log2FC.C9orf72 > 0 ~ "up", FDR.C9orf72 < 0.05 & log2FC.C9orf72 < 0 ~ "down", TRUE ~ "non-significant"))
-tyzack.dge <- tyzack$res %>% select(gene_name, hsap.ensembl = gene_id, log2FC.SOD1 = log2FoldChange, FDR.SOD1 = padj) %>% mutate(direction.SOD1 = case_when(FDR.SOD1 < 0.05 & log2FC.SOD1 > 0 ~ "up", FDR.SOD1 < 0.05 & log2FC.SOD1 < 0 ~ "down", TRUE ~ "non-significant"))
-neyrinck.dge <- neyrinck$res %>% select(gene_name, hsap.ensembl = gene_id, log2FC.FUS = log2FoldChange, FDR.FUS = padj) %>% mutate(direction.FUS = case_when(FDR.FUS < 0.05 & log2FC.FUS > 0 ~ "up", FDR.FUS < 0.05 & log2FC.FUS < 0 ~ "down", TRUE ~ "non-significant"))
-als_datasets_merged.dge <- patani.dge %>% full_join(tyzack.dge) %>% full_join(ipsc_mn_c9orf72_datasets.dge) %>% full_join(neyrinck.dge) %>% 
-  mutate(overlap = case_when(FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP > 0 & log2FC.C9orf72 > 0 & log2FC.SOD1 > 0 & log2FC.FUS > 0 ~ "overlapping up",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP < 0 & log2FC.C9orf72 < 0 & log2FC.SOD1 < 0 & log2FC.FUS < 0 ~ "overlapping down",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & log2FC.VCP > 0 & log2FC.C9orf72 > 0 & log2FC.SOD1 > 0 ~ "VCP C9orf72 SOD1 up",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & log2FC.VCP < 0 & log2FC.C9orf72 < 0 & log2FC.SOD1 < 0 ~ "VCP C9orf72 SOD1 down",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP > 0 & log2FC.C9orf72 > 0 & log2FC.FUS > 0 ~ "VCP C9orf72 FUS up",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP < 0 & log2FC.C9orf72 < 0 & log2FC.FUS < 0 ~ "VCP C9orf72 FUS down",
-                             FDR.VCP < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP > 0 & log2FC.SOD1 > 0 & log2FC.FUS > 0 ~ "VCP SOD1 FUS up",
-                             FDR.VCP < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.VCP < 0 & log2FC.SOD1 < 0 & log2FC.FUS < 0 ~ "VCP SOD1 FUS down",
-                             FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.C9orf72 > 0 & log2FC.SOD1 > 0 & log2FC.FUS > 0 ~ "C9orf72 SOD1 FUS up",
-                             FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.C9orf72 < 0 & log2FC.SOD1 < 0 & log2FC.FUS < 0 ~ "C9orf72 SOD1 FUS down",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & log2FC.VCP > 0 & log2FC.C9orf72 > 0 ~ "VCP C9orf72 up",
-                             FDR.VCP < 0.05 & FDR.C9orf72 < 0.05 & log2FC.VCP < 0 & log2FC.C9orf72 < 0~ "VCP C9orf72 down",
-                             FDR.VCP < 0.05 & FDR.SOD1 < 0.05 & log2FC.VCP > 0 & log2FC.SOD1 > 0 ~ "VCP SOD1 up",
-                             FDR.VCP < 0.05 & FDR.SOD1 < 0.05 & log2FC.VCP < 0 & log2FC.SOD1 < 0~ "VCP SOD1 down",
-                             FDR.VCP < 0.05 & FDR.FUS < 0.05 & log2FC.VCP > 0 & log2FC.FUS > 0 ~ "VCP FUS up",
-                             FDR.VCP < 0.05 & FDR.FUS < 0.05 & log2FC.VCP < 0 & log2FC.FUS < 0~ "VCP FUS down",
-                             FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & log2FC.C9orf72 > 0 & log2FC.SOD1 > 0 ~ "C9orf72 SOD1 up",
-                             FDR.C9orf72 < 0.05 & FDR.SOD1 < 0.05 & log2FC.C9orf72 < 0 & log2FC.SOD1 < 0~ "C9orf72 SOD1 down",
-                             FDR.C9orf72 < 0.05 & FDR.FUS < 0.05 & log2FC.C9orf72 > 0 & log2FC.FUS > 0 ~ "C9orf72 FUS up",
-                             FDR.C9orf72 < 0.05 & FDR.FUS < 0.05 & log2FC.C9orf72 < 0 & log2FC.FUS < 0~ "C9orf72 FUS down",
-                             FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.SOD1 > 0 & log2FC.FUS > 0 ~ "SOD1 FUS up",
-                             FDR.SOD1 < 0.05 & FDR.FUS < 0.05 & log2FC.SOD1 < 0 & log2FC.FUS < 0~ "SOD1 FUS down",
-                             TRUE ~ "None"),
-         overlap = factor(overlap, levels = c("overlapping up",  "overlapping down", "VCP C9orf72 SOD1 up", "VCP C9orf72 SOD1 down", "VCP C9orf72 FUS up", "VCP C9orf72 FUS down", "VCP SOD1 FUS up", "VCP SOD1 FUS down","C9orf72 SOD1 FUS up", "C9orf72 SOD1 FUS down","VCP C9orf72 up","VCP C9orf72 down","VCP SOD1 up","VCP SOD1 down", "VCP FUS up", "VCP FUS down","C9orf72 SOD1 up","C9orf72 SOD1 down","C9orf72 FUS up","C9orf72 FUS down","SOD1 FUS up","SOD1 FUS down","None"))) %>%  arrange(overlap) %>%
-  select(gene_name, hsap.ensembl, overlap, everything())
-
-write_csv(als_datasets_merged.dge, "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/TableS3.overlap_als_individual_datasets.csv")
-
-# VCP.SOD1.C9ORF72.FUS_overlap <- cbindX(arrange(as_tibble_col(DGEup_C9ORF72_VCP, column_name = "C9ORF72_VCP_up"), C9ORF72_VCP_up),  
-#                          arrange(as_tibble_col(DGEdown_C9ORF72_VCP, column_name = "C9ORF72_VCP_down"), C9ORF72_VCP_down),  
-#                          arrange(as_tibble_col(DGEup_SOD1_VCP, column_name = "SOD1_VCP_up"), SOD1_VCP_up),  
-#                          arrange(as_tibble_col(DGEdown_SOD1_VCP, column_name = "SOD1_VCP_down"), SOD1_VCP_down))
-# VCP.SOD1.C9ORF72.FUS_overlap[is.na(VCP.SOD1.C9ORF72.FUS_overlap)] <- ""
-# write_csv(VCP.SOD1.C9ORF72.FUS_overlap, "/camp/home/ziffo/home/projects/astrocyte-a1-als-meta/expression/deseq2/Table.S3.VCP.SOD1.C9ORF72.FUS_overlap.csv")
-```
-
 # Fig 2 hiPSC ALS meta-analysis
 
 ## Volcano
 
 ```{r}
-ipsc_mn_als_datasets.als.gene.labels <- ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes)) %>% pull(gene_name)
-ipsc_mn_als_datasets.relevent.gene.labels <- ipsc_mn_als_datasets$res %>% filter(-log10(padj) > 1, abs(log2FoldChange) > 1, gene_name %in% c(RNA_BINDING_PROTEINS, nucleocytoplasmic_genes, go.pathways.msigdb$GO_MITOCHONDRION)) %>% pull(gene_name)
-ipsc_mn_als_datasets.relevent.extreme.labels <- ipsc_mn_als_datasets$res %>% filter(-log10(padj) > 5) %>% pull(gene_name)
-ipsc_mn_als_datasets.volcano <- volcano_plot_deseq(data = ipsc_mn_als_datasets$res, labels_list = c(ipsc_mn_als_datasets.interesting.gene.labels, ipsc_mn_als_datasets.relevent.gene.labels, ipsc_mn_als_datasets.relevent.extreme.labels)) + xlab(expression(log[2]~fold~change~ALS:CTRL)) + 
-  coord_cartesian(xlim = c(-5,5), ylim = c(0,9)) +
-  geom_segment(aes(x = 1, xend = 4, y= 8, yend= 8), arrow=arrow(length=unit(0.3,"cm")), color = "firebrick2" ) +
-  geom_segment(aes(x = -1, xend = -4, y= 8, yend= 8),arrow=arrow(length=unit(0.3,"cm")), color = "dodgerblue2") +
-  annotate("text", x = 2.5, y = 8.5, label = "Up in ALS", color = "firebrick2", size = 2.8) + annotate("text", x = -2.5, y = 8.5, label = "Down in ALS", color = "dodgerblue2", size = 2.8)
-ipsc_mn_als_datasets.volcano
-
-ipsc_mn_als_datasets$res %>% filter(padj<0.05, log2FoldChange > 0) # 250
-ipsc_mn_als_datasets$res %>% filter(padj<0.05, log2FoldChange < 0) # 984
-
-ipsc_mn_als_datasets.als.gene.labels <- ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes)) %>% pull(gene_name)
+ipsc_mn_als_datasets.als.gene.labels <- ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS)) %>% pull(gene_name)
 ipsc_mn_als_datasets.volcano <- volcano_plot(ipsc_mn_als_datasets$res, "panALS", 
-               subtitle = "47 Controls vs 52 ALS", ymax = 13,
+               subtitle = "47 Controls vs 52 ALS", ymax = 10,
                annotate_by = ipsc_mn_als_datasets.als.gene.labels) 
 ipsc_mn_als_datasets.volcano
+
+ipsc_mn_als_datasets$res %>% filter(padj<0.05, log2FoldChange > 0) # 193
+ipsc_mn_als_datasets$res %>% filter(padj<0.05, log2FoldChange < 0) # 821
+
+
 ```
 
 ## GO terms ALS
@@ -1167,6 +1139,132 @@ ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msig
 ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msigdb$GO_PLASMA_MEMBRANE_REGION)
 ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msigdb$GO_GAP_JUNCTION)
 ipsc_mn_als_datasets$res %>% filter(padj < 0.05, gene_name %in% go.pathways.msigdb$GO_EXTRACELLULAR_MATRIX_STRUCTURAL_CONSTITUENT_CONFERRING_COMPRESSION_RESISTANCE)
+```
+
+## GSEA
+
+```{r}
+ipsc_mn_panals_list = list("panALS" = ipsc_mn_als_datasets$res)
+panals <- names(ipsc_mn_panals_list)
+
+ipsc_mn_panals_list = purrr::map2(
+      .x = ipsc_mn_panals_list,
+      .y = names(ipsc_mn_panals_list), ~{
+        .x$mutation <- .y
+        return(.x)
+      })
+
+make_gene_sets <- function(de_res){
+  # for each result split by direction and get out lists of gene
+  # output only significant up and downregulated genes
+  gene_sets_sig <- map_df(de_res, ~{.x}) %>% mutate(direction = case_when(log2FoldChange > 0 ~ "up", TRUE ~ "down"), set = paste(mutation, direction, sep = ":")) %>% filter(padj < 0.05) %>%  split(.$set) %>% map("gene_name") #%>%  #map( ~{ head(.x, 1000)}
+  # output top X genes sorted by P-value, even if not sig at FDR < 0.05
+  gene_sets_top <- map_df(de_res, ~{.x}) %>%  mutate(direction = case_when(log2FoldChange > 0 ~ "up", TRUE ~ "down"), set = paste(mutation, direction, sep = ":")) %>% split(.$set) %>% map("gene_name") %>%  map( ~{ head(.x, 250)})
+  
+  mutations <- names(de_res)
+  
+  mutation_sets <- expand.grid(mutations, c("up","down"), stringsAsFactors = FALSE)
+  names(mutation_sets) <- c("mutation", "direction")
+  mutation_sets$set <- paste(mutation_sets$mutation, mutation_sets$direction, sep = ":")
+  
+  gene_sets_top <- gene_sets_top[mutation_sets$set]
+  
+  gene_sets_tstat <- map(de_res, ~{
+      .x <- 
+        .x %>%
+        #filter(padj < 0.05) %>%
+        arrange( desc(stat) )
+      tstat <- .x$stat
+      names(tstat) <- .x$gene_name
+      return(tstat)
+    })
+  
+  gene_sets_lfc <-
+    map(de_res, ~{
+      .x <- .x %>%
+        filter(pvalue < 0.05) %>%
+        arrange( desc(log2FoldChange) )
+      lfc <- .x$log2FoldChange
+      names(lfc) <- .x$gene_name
+      return(lfc)
+    })
+  
+  return(list(sig = gene_sets_sig, top = gene_sets_top, t = gene_sets_tstat, lfc = gene_sets_lfc) ) 
+}
+
+ipsc_mn_panals_gene_lists = make_gene_sets(ipsc_mn_panals_list)
+
+# use t stat or log fc
+hallmark_gsea <- function(gene_set){
+  hallmark_gsea_res <- map_df(gene_set, ~{
+    as.data.frame(GSEA(.x, TERM2GENE = hallmarks.msigdb, minGSSize = 5, pvalueCutoff = 1, eps = 0))
+  }, .id = "set")
+  return(hallmark_gsea_res)
+}
+
+ipsc_mn_panals_hallmark_gsea = hallmark_gsea(ipsc_mn_panals_gene_lists$lfc)
+
+
+# plot hallmarks
+hallmark_gsea_plot <- function(df, plot_all = FALSE){
+  df$ID <- gsub("^\\s+", "", df$ID)
+  
+  if( plot_all == TRUE){
+    sig_level <- 1
+  }else{
+    sig_level <- 0.05
+  }
+  
+  hallmark_levels <- 
+    df %>%
+    filter(p.adjust < sig_level) %>%
+    select(set, ID, NES) %>%
+    pivot_wider(names_from = set, values_from = NES) %>%
+    rowwise() %>%
+    mutate(mean_nes = mean( panALS, na.rm = TRUE)) %>%
+    arrange( mean_nes) %>%
+    mutate(ID = factor(ID, levels = ID)) 
+    
+  # if( plot_all == FALSE){
+  #   hallmark_levels <- hallmark_levels %>% tidyr::drop_na()
+  # }
+
+  to_plot <-
+    df %>%
+    mutate(padj = p.adjust) %>%
+    mutate(padj_label = case_when(
+    padj < 0.0001 ~ "***",
+    padj < 0.001 ~ "**",
+    padj < 0.05 ~ "*",
+    TRUE ~ "."
+    )) 
+  
+  
+    to_plot %>%
+      filter(ID %in% hallmark_levels$ID) %>%
+      mutate(ID = factor(ID, levels = hallmark_levels$ID)) %>%
+      mutate(set = factor(set, levels = c("C9orf72", "TARDBP", "FUS", "SOD1", "VCP"))) %>%
+    ggplot(aes(x = set, y = ID, label = padj_label, fill = NES)) + 
+    geom_tile() + 
+    geom_text() +
+    scale_fill_distiller(na.value = "lightgray", palette = "RdBu", limits = c(-4,4) ) + 
+    #geom_text(aes(label = signif(value, digits = 2) ) ) +
+    scale_x_discrete(expand = c(0,0), position = "top") +
+    scale_y_discrete(expand = c(0,0)) +
+    theme_oz() +
+    labs(subtitle = "MSigDB Hallmark gene set enrichment analysis", x = "", y = "", fill = "NES")
+
+}
+
+
+h_plot <- hallmark_gsea_plot(ipsc_mn_panals_hallmark_gsea)
+h_plot 
+
+ipsc_mn_panals_hallmark_gsea_h_plot_all <- hallmark_gsea_plot(ipsc_mn_panals_hallmark_gsea, plot_all = TRUE)
+ipsc_mn_panals_hallmark_gsea_h_plot_all
+ggsave(ipsc_mn_panals_hallmark_gsea_h_plot_all, filename = "/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/fig2.hallmarks_gsea_plot_all.png", height = 11.75, width = 8.25)
+
+
 ```
 
 ## Transcription factor DoRoTHEA
