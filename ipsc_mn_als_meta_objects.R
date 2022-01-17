@@ -61,7 +61,7 @@ singapore.metadata <- read_csv("/camp/lab/luscomben/home/shared/projects/patani-
 # ALS hiPSC meta-analysis all datasets
 ipsc_mn_als_datasets.metadata <- bind_rows(catanese.metadata, lee.metadata, dafianca.c9orf72.metadata, dafianca.tardbp.metadata, luisier.metadata, mitchell.metadata, wang.metadata, moccia.metadata, sareen.metadata, sterneckert.metadata, kapeli.metadata, melamed.metadata, desantis.metadata, smith.metadata, singapore.metadata) %>% 
   mutate(sample_name = sample, sample = paste0(dataset,"_",sample), condition = factor(condition, levels = c("ctrl", "als")), dataset = as.factor(dataset), mutation = as.factor(mutation),
-         DIV = as.factor(case_when(dataset %in% c("catanese","lee","luisier","sareen","kapeli","smith","singapore") ~ 35, dataset == "dafianca" ~ 30, dataset == "wang" ~ 12, dataset == "melamed" ~ 28, dataset == "desantis" ~ 19, dataset == "moccia" ~ 30, 
+         DIV = as.factor(case_when(dataset %in% c("catanese","lee","luisier","sareen","kapeli","smith","singapore") ~ 35, dataset %in% c("dafianca.c9orf72", "dafianca.tardbp") ~ 30, dataset == "wang" ~ 12, dataset == "melamed" ~ 28, dataset == "desantis" ~ 19, dataset == "moccia" ~ 30, 
                                    dataset == "sterneckert" ~ 40, dataset == "mitchell" ~ 25)), instrument = gsub("Illumina ","",instrument)) %>%
   select(sample, dataset, condition, mutation, sample_name, replicate, file_salmon, file_irfinder, everything())
 # FUS
