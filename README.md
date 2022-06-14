@@ -2,6 +2,7 @@
 This repository contains scripts to analyse the data and reproduce the figures from the ALS iPSC-derived motor neuron meta-analysis project.
 
 Meta-analysis of iPSC-derived motor neurons reveals heightened DNA damage response and p53 signalling across the amyotrophic lateral sclerosis spectrum
+
 Oliver J. Ziff, Jacob Neeves, Giulia Tyzack, Jamie Mitchell, Anob M. Chakrabarti, Raphaelle Luisier, Simon J. Boulton, Gavin Kelly, Jack Humphrey, Rickie Patani
 
 ![iPSN meta pipeline](https://github.com/ojziff/ipsc_mn_als_meta/blob/main/ipsn_meta_pipeline.png)
