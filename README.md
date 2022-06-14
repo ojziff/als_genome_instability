@@ -12,7 +12,7 @@ The scripts are written in Rmarkdown documents for readability and are organised
 
 Meta-analysis results can be browsed in the interactive web application at [https://shiny.crick.ac.uk/ALS_reactive_astrocytes_meta/](https://shiny.crick.ac.uk/iPSN_ALS_meta/)
 
-16 iPSN RNA sequencing datasets were used in this study:
+15 iPSN RNA sequencing datasets were used in this study:
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
 |-----------------------|-----------------------|-----------------------|-------|-----------|--------------|----------------------------------------------|
 | Sareen et al, 2013    | GSE52202              | C9orf72               |     4 |         4 | polyA        | https://www.ncbi.nlm.nih.gov/pubmed/24154603 |
