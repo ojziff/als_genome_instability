@@ -9,7 +9,7 @@ Oliver J. Ziff, Jacob Neeves, Giulia Tyzack, Jamie Mitchell, Anob M. Chakrabarti
 
 The scripts are written in Rmarkdown documents for readability and are organised in order of the Figures and Tables in the paper.
 
-Meta-analysis results can be browsed in the interactive web application at [https://shiny.crick.ac.uk/ALS_reactive_astrocytes_meta/](https://shiny.crick.ac.uk/iPSN_ALS_meta/)
+Meta-analysis results can be browsed in the interactive web application at [https://shiny.crick.ac.uk/ipsn_als_meta/](https://shiny.crick.ac.uk/ipsn_als_meta/)
 
 15 iPSN RNA sequencing datasets were used in this study:
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
