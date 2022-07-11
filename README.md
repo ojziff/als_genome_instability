@@ -14,23 +14,23 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 Knitted HTMLs can be browsed with the links below.
 
-### [RNA-seq QC and motor neuron identities](https://oliverziff.github.io/ipsn_als_meta/html/qc_identities.html) 
+### [RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
 
 <img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_identities_pca_heatmap.png" height="700">
 
-### [pan-ALS vs control differential expression](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
+### [pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
 
 ![Figure 2](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
 
-### [Compare ALS genetic backgrounds](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
+### [Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
 
 ![Figure 3](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
 
-### [ALS postmortem spinal cord](https://oliverziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
+### [ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
 
 ![Extended Data Figure 11](https://github.com/ojziff/ipsn_als_meta/blob/main/postmortem_als.png)
 
-### [pan-ALS vs control differential splicing](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
+### [pan-ALS vs control differential splicing](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
 
 ![Figure 4](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_4.png)
 
