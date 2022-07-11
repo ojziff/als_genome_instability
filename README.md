@@ -8,7 +8,7 @@ Oliver Ziff 2022
 
 This page contains scripts to analyse the data and reproduce the figures from the meta-analysis of ALS iPSC-derived motor neurons.
 
-![iPSN meta pipeline](https://github.com/ojziff/ipsn_als_meta/blob/main/ipsn_meta_pipeline.png)
+![iPSN meta pipeline](https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_meta_pipeline.png)
 
 ## [Rmarkdown workbooks](https://github.com/ojziff/ipsn_als_meta/blob/main/ipsc_mn_als_meta.Rmd)
 
@@ -16,7 +16,7 @@ Knitted HTMLs can be browsed with the links below.
 
 ### [RNA-seq QC and motor neuron identities](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_qc.html) 
 
-![PCA and heatmap](https://github.com/ojziff/ipsn_als_meta/blob/main/pca_heatmap.png)
+![PCA and heatmap](https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_identities_pca_heatmap.png)
 
 ### [pan-ALS vs control differential expression](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
 
