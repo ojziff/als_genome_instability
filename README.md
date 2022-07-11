@@ -1,17 +1,47 @@
-# Meta-analysis of ALS iPSC-derived motor neurons 
-This repository contains scripts to analyse the data and reproduce the figures from the ALS iPSC-derived motor neuron meta-analysis project.
+## Meta-analysis of the ALS spectrum uncovers genome instability
 
-Meta-analysis of iPSC-derived motor neurons reveals heightened DNA damage response and p53 signalling across the amyotrophic lateral sclerosis spectrum
+Oliver Ziff 2022
 
-Oliver J. Ziff, Jacob Neeves, Giulia Tyzack, Jamie Mitchell, Anob M. Chakrabarti, Raphaelle Luisier, Simon J. Boulton, Gavin Kelly, Jack Humphrey, Rickie Patani
+This page contains scripts to analyse the data and reproduce the figures from the meta-analysis of ALS iPSC-derived motor neurons.
 
-![iPSN meta pipeline](https://github.com/ojziff/ipsc_mn_als_meta/blob/main/ipsn_meta_pipeline.png)
+![iPSN meta pipeline](https://github.com/ojziff/ipsn_als_meta/blob/main/ipsn_meta_pipeline.png)
 
-The scripts are written in Rmarkdown documents for readability and are organised in order of the Figures and Tables in the paper.
+## [Manuscript](https://www.medrxiv.org/)
 
-Meta-analysis results can be browsed in the interactive web application at [https://shiny.crick.ac.uk/ipsn_als_meta/](https://shiny.crick.ac.uk/ipsn_als_meta/)
+## [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
 
-15 iPSN RNA sequencing datasets were used in this study:
+## [Script workbooks](https://github.com/ojziff/ipsn_als_meta/blob/main/ipsc_mn_als_meta.Rmd)
+
+Knitted HTMLs can be browsed with the links below.
+
+## [RNA-seq QC and motor neuron identities](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_qc.html) 
+
+![PCA and heatmap](https://github.com/ojziff/ipsn_als_meta/blob/main/pca_heatmap.png)
+
+## [pan-ALS vs control differential expression](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
+
+![Figure 2](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
+
+## [Compare ALS genetic backgrounds](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
+
+![Figure 3](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
+
+## [ALS postmortem spinal cord](https://oliverziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
+
+![Extended Data Figure 11](https://github.com/ojziff/ipsn_als_meta/blob/main/postmortem_als.png)
+
+## [pan-ALS vs control differential splicing](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
+
+![Figure 4](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_4.png)
+
+## [Variants and gene fusion]()
+
+![Figure 5](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_5.png)
+
+## Data availability
+
+iPSN RNA sequencing datasets were used in this study
+
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
 |-----------------------|-----------------------|-----------------------|-------|-----------|--------------|----------------------------------------------|
 | Sareen et al, 2013    | GSE52202              | C9orf72               |     4 |         4 | polyA        | https://www.ncbi.nlm.nih.gov/pubmed/24154603 |
@@ -37,6 +67,6 @@ Meta-analysis results can be browsed in the interactive web application at [http
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-For each RNAseq dataset we process samples with nf-core/rnaseq v3.7 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2 and splicing with MAJIQ2, as per the rmarkdown script. Schematics were created using Biorender.com.
+For each RNAseq dataset we process samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2 and splicing with MAJIQ2, as per the rmarkdown script. Schematics were created using Biorender.com.
 
 
