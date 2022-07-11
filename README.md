@@ -10,7 +10,7 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 <img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_meta_pipeline.png" height="400">
 
-## [Rmarkdown workbooks](https://github.com/ojziff/ipsn_als_meta/blob/main/ipsc_mn_als_meta.Rmd)
+## [Rmarkdown workbooks](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
 
 Knitted HTMLs can be browsed with the links below.
 
