@@ -67,6 +67,6 @@ iPSN RNA sequencing datasets used in this study:
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-For each RNAseq dataset we process samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2 and splicing with MAJIQ2, as per the rmarkdown script. Schematics were created using Biorender.com.
+For each RNAseq dataset we process samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2 and splicing with MAJIQ2, as per the rmarkdown scripts. Schematics were created using Biorender.com.
 
 
