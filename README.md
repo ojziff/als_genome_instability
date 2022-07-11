@@ -34,7 +34,7 @@ Knitted HTMLs can be browsed with the links below.
 
 ![Figure 4](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_4.png)
 
-### [Variants and gene fusion]()
+### [Variants and gene fusions]()
 
 ![Figure 5](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_5.png)
 
