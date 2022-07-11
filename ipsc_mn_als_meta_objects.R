@@ -3,39 +3,27 @@
 # sbatch -N 1 -c 12 --mem=0 -t 72:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects
 # sbatch -N 1 -c 12 --mem=72G -t 72:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects --dependency=afterany:38886199
 # sbatch -N 1 -c 6 --mem=50G -t 8:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects 
+# sbatch --cpus-per-task=10 --mem=1500G -N 1 --partition=hmem -t 72:00:00 --wrap="Rscript /camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta/ipsc_mn_als_meta_objects.R" --mail-type=ALL,ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=DESeq2objects
 
-# load("/camp/home/ziffo/home/projects/ipsc-mn-als-meta/expression/deseq2/ipsc_mn_als_meta.RData")
 # source("/Volumes/lab-luscomben/home/users/ziffo/scripts/functions/mac_R_functions.R") 
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
 # camp_path = here("/Volumes/lab-luscomben/home/users/ziffo")
 camp_path = here("/camp/lab/luscomben/home/users/ziffo")
 # shared_path = here("/Volumes/lab-luscomben/home/users/ziffo/proj-luscombn-patani/working")
-
 shared_path = here("/camp/project/proj-luscombn-patani/working")
 # collab_path = here("/Volumes/lab-luscomben/home/users/ziffo/patani-collab")
 collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
 # proj_path = here("/Volumes/lab-luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
 proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
-
-sprint_from_fastq_script <- read_csv("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/sample-details/ipsc_mn_als_datasets_with_lee.samplesheet.csv") %>% distinct(sample, .keep_all = TRUE) %>% 
-  mutate(start = "sbatch -N 1 -c 12 --mem=72G -t 72:00:00 --wrap='sprint main -rp /camp/lab/luscomben/home/users/ziffo/bin/SPRINT/dbrep/hg38_repeat.txt -p 12", ss = case_when(strandedness == "reverse" ~ " -ss 0",strandedness == "none" ~ ""), ss = replace_na(ss,""),
-         database_dir = "/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta", 
-         trimmed_fastq1 = case_when(is.na(fastq_2) == TRUE ~ paste0(database_dir, "/nfcore/trimgalore/", sample, "_val.fq"), is.na(fastq_2) == FALSE ~ paste0(database_dir, "/nfcore/trimgalore/", sample, "_1_val_1.fq")), 
-         trimmed_fastq2 = case_when(is.na(fastq_2) == TRUE ~ "", is.na(fastq_2) == FALSE ~ paste0(database_dir, "/nfcore/trimgalore/", sample, "_2_val_2.fq")),
-         fasta = "/camp/lab/luscomben/home/users/ziffo/genomes/ensembl/Homo_sapiens.GRCh38.dna.primary_assembly.fa ", output_file = paste0(database_dir, "/editing/sprint/", sample),
-         end = " bwa samtools' --mail-type=ARRAY_TASKS --mail-user=oliver.ziff@crick.ac.uk --job-name=SPRINT",
-         `#!/bin/bash` = case_when(is.na(fastq_2) == FALSE ~ paste0(start, ss, " -1 ", trimmed_fastq1, " -2 ", trimmed_fastq2, fasta, output_file, end), 
-                                   is.na(fastq_2) == TRUE ~ paste0(start, ss, " -1 ", trimmed_fastq1, " ", fasta, output_file, end))) %>% select(`#!/bin/bash`)
-sprint_from_fastq_script
-sprint_from_fastq_script %>% pull(`#!/bin/bash`)
-write_tsv(sprint_from_fastq_script, "/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/sample-details/sprint_from_fastq_script.sh")
+# load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # overwrites with old functions
 
 
+          
 # Samplesheets ----------------------------------------------------------------
 answerals.gene_tpm.male_counts = read_tsv(here(shared_path,"answerals/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('RPS4Y1', 'EIFAY', 'DDX3Y', 'KDM5D')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
 answerals.metadata = read_csv(here(shared_path,"answerals/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%
-  mutate(database_dir = here(shared_path,"answerals"), dataset = "answerals", dataset_sample = paste0(dataset,"_",sample), study_accession = dataset) %>%
+  mutate(database_dir = here(shared_path,"answerals"), dataset = "answerals", dataset_sample = paste0(dataset,"_",sample), study_accession = dataset, library_layout = "PAIRED") %>%
   filter(condition %in% c("als", "ctrl")) %>% # remove 1 C9orf72 carrier and 4 other mnd
   filter(!(condition == "ctrl" & mutation %in% c("optn", "als2"))) %>% # remove the 2 controls that have mutations in OPTN and ALS2
   mutate(condition = factor(condition, levels = c("ctrl", "als"))) %>% left_join(select(answerals.gene_tpm.male_counts, sample, gender))
@@ -43,6 +31,8 @@ neurolincs.gene_tpm.male_counts = read_tsv(here(shared_path,"neurolincs/nfcore/s
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"), sample = gsub("^X","",sample), sample = gsub("\\.","-",sample))
 neurolincs.metadata = read_csv(here(shared_path,"neurolincs/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>% filter(DIV != 0) %>% # diMN = 0007..., iMN A-042-... labels
   mutate(database_dir = here(shared_path,"neurolincs"), condition = factor(condition, levels = c("ctrl", "als")), dataset = case_when(dataset == "neurolincs0" ~ "neurolincs.diMN",dataset == "neurolincsA" ~ "neurolincs.iMN"), study_accession = dataset) %>% left_join(select(neurolincs.gene_tpm.male_counts, sample, gender))
+neurolincs.ipsc.metadata = read_csv(here(shared_path,"neurolincs/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>% filter(DIV == 0) %>% # only iPSCs
+  mutate(database_dir = here(shared_path,"neurolincs"), condition = factor(condition, levels = c("ctrl", "als")), dataset = case_when(dataset == "neurolincsI" ~ "neurolincs.iPSC"), study_accession = dataset) %>% left_join(select(neurolincs.gene_tpm.male_counts, sample, gender))
 catanese.gene_tpm.male_counts = read_tsv(here(shared_path,"public-data/ipsc-mn-c9orf72-fus-catanese-2021/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('RPS4Y1', 'EIFAY', 'DDX3Y', 'KDM5D')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
 catanese.metadata <- read_csv(here(shared_path,"public-data/ipsc-mn-c9orf72-fus-catanese-2021/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%
@@ -59,10 +49,6 @@ luisier.gene_tpm.male_counts = read_tsv(here(collab_path,"motor-neuron-vcp-luisi
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
 luisier.metadata <- read_csv(here(collab_path,"motor-neuron-vcp-luisier-2018/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%  filter(day == 35) %>%
   mutate(database_dir = here(collab_path,"motor-neuron-vcp-luisier-2018"), dataset = "luisier", total_size = bases, name = gsub("d35_","",sample), DIV = 35) %>% left_join(select(luisier.gene_tpm.male_counts, sample, gender))
-# mitchell.gene_tpm.male_counts = read_tsv(here(collab_path,"inter-neuron-bulk-rnaseq/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('RPS4Y1', 'EIFAY', 'DDX3Y', 'KDM5D')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
-#   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
-# mitchell.metadata <- read_csv(here(collab_path,"inter-neuron-bulk-rnaseq/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%  filter(day == 25, celltype == "mn") %>%
-#   mutate(database_dir = here(collab_path,"inter-neuron-bulk-rnaseq"), dataset = "mitchell", DIV = 25, instrument = "Illumina HiSeq 4000",library_layout = "PAIRED", mutation = case_when(condition == "als" ~ "vcp", TRUE ~ "ctrl"), total_size = 5000000000, avg_spot_len = 100) %>% left_join(select(mitchell.gene_tpm.male_counts, sample, gender))
 wang.gene_tpm.male_counts = read_tsv(here(shared_path,"public-data/ipsc-mn-sod1-wang-2017/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('RPS4Y1', 'EIFAY', 'DDX3Y', 'KDM5D')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
 wang.metadata <- read_csv(here(shared_path,"public-data/ipsc-mn-sod1-wang-2017/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%
@@ -106,7 +92,8 @@ hawkins.metadata <- read_csv(here(shared_path,"public-data/ipsc-mn-fus-hawkins-2
 lee.gene_tpm.male_counts = read_tsv(here(shared_path,"public-data/ipsc-occular-spinal-mn-lee-2021/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('RPS4Y1', 'EIFAY', 'DDX3Y', 'KDM5D')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
   filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 10 ~ "male", TRUE ~ "female"))
 lee.metadata <- read_csv(here(shared_path,"public-data/ipsc-occular-spinal-mn-lee-2021/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%
-  mutate(database_dir = here(shared_path,"public-data/ipsc-occular-spinal-mn-lee-2021"), dataset = case_when(mutation == "ctrl" ~ "lee.CTRL", TRUE ~ "lee.ALS"), condition = case_when(mutation == "ctrl" ~ "ctrl", TRUE ~ "als")) %>% filter(location == "spinal") %>% left_join(select(lee.gene_tpm.male_counts, sample, gender))
+  mutate(database_dir = here(shared_path,"public-data/ipsc-occular-spinal-mn-lee-2021"), dataset = case_when(mutation == "ctrl" ~ "lee.CTRL", TRUE ~ "lee.ALS"), condition = case_when(mutation == "ctrl" ~ "ctrl", TRUE ~ "als"),
+         strandedness = case_when(condition == "als" ~ "reverse", TRUE ~ strandedness)) %>% filter(location == "spinal") %>% left_join(select(lee.gene_tpm.male_counts, sample, gender))
 
 
 # Metadata merge ----------------------------------------------------------------
@@ -119,6 +106,8 @@ ipsc_mn_als_datasets_with_lee.metadata <- bind_rows(answerals.metadata, neurolin
 ipsc_mn_als_datasets.metadata <- ipsc_mn_als_datasets_with_lee.metadata %>% filter(!dataset %in% c("lee.CTRL","lee.ALS")) %>% mutate(dataset = fct_drop(dataset), dataset_simplified = fct_drop(dataset_simplified))
 ipsc_mn_als_datasets.polyA.metadata <- filter(ipsc_mn_als_datasets.metadata, library_type == "poly(A)")
 ipsc_mn_als_datasets.total.metadata <- filter(ipsc_mn_als_datasets.metadata, library_type == "Total")
+ipsc_mn_als_datasets.single_end.metadata <- filter(ipsc_mn_als_datasets.metadata, library_layout == "SINGLE")
+ipsc_mn_als_datasets.paired_end.metadata <- filter(ipsc_mn_als_datasets.metadata, library_layout == "PAIRED")
 ipsc_mn_als_datasets.noiso.metadata <- ipsc_mn_als_datasets.metadata %>% filter(!dataset %in% c("bhinge","kiskinis","wang"), mutation != "iso") # remove 3 datasets with only isogenic corrected controls as well as other isogenic controls in mixed datasets - "dafinca.c9orf72", "catanese"
 ipsc_mn_familial_datasets.metadata = ipsc_mn_als_datasets.metadata %>% filter(mutation != "sporadic")
 ipsc_mn_sporadic_datasets.metadata <- bind_rows(filter(answerals.metadata, mutation %in% c("sporadic","ctrl")), filter(neurolincs.metadata, mutation %in% c("sporadic","ctrl"))) %>%
@@ -152,23 +141,11 @@ write_csv(select(ipsc_mn_als_datasets_with_lee.metadata, sample = dataset_sample
 write_csv(select(ipsc_mn_als_datasets.metadata, sample = dataset_sample, fastq_1, fastq_2, strandedness, dataset, condition, mutation, gender), here(proj_path,"sample-details/ipsc_mn_als_datasets.samplesheet.csv"), na = "")
 ipsc_mn_als_datasets.metadata.rnavar = ipsc_mn_als_datasets.metadata %>% mutate(dataset_sample = gsub("_",".",dataset_sample))
 write_csv(select(ipsc_mn_als_datasets.metadata.rnavar, sample = dataset_sample, fastq_1, fastq_2, strandedness, dataset, condition, mutation, gender), here(proj_path,"sample-details/ipsc_mn_als_datasets.rnavar.samplesheet.csv"), na = "")
-
-
-# Mouse metadata
-mouse_als_datasets.gene_tpm.male_counts = read_tsv(here(proj_path,"mouse-meta/nfcore/star_salmon/salmon.merged.gene_tpm.tsv")) %>% filter(gene_name %in% c('Sry', 'Ddx3y', 'Kdm5d')) %>% select(-gene_id) %>% adorn_totals("row", name = "male_counts") %>% as_tibble %>% 
-  filter(gene_name == "male_counts") %>% transpose_tibble(old_rownames = "gene_name", new_rownames = "sample") %>% mutate(gender = case_when(male_counts > 5 ~ "male", TRUE ~ "female"))
-mouse_als_datasets.metadata <- read_csv(here(proj_path,"mouse-meta/sample-details/samplesheet.csv")) %>% distinct(sample, .keep_all = TRUE) %>%
-  mutate(database_dir = here(proj_path,"mouse-meta"), condition = factor(condition, levels = c("ctrl", "als")), dataset = as.factor(dataset), mutation = as.factor(mutation), instrument = gsub("Illumina ","",instrument), library_type = "polyA") %>%
-  select(-gender) %>% left_join(select(mouse_als_datasets.gene_tpm.male_counts, sample, gender)) %>%
-  select(sample, dataset, condition, mutation, dataset, replicate, gender, database_dir, everything()) %>% filter(sample != "henriques_ctrl_3") # henriques_ctrl_3 clustering away on PCA
-mouse_c9orf72_datasets.metadata <- mouse_als_datasets.metadata %>% filter(dataset == "orourke")
-mouse_sod1_datasets.metadata <- mouse_als_datasets.metadata %>% filter(dataset %in% c("fernandez", "herskovits", "marsala", "rudnick", "phatnani", "henriques"))
-mouse_fus_datasets.metadata <- mouse_als_datasets.metadata %>% filter(dataset %in% c("lopez", "rezvykh"))
-mouse_tardbp_datasets.metadata <- mouse_als_datasets.metadata %>% filter(dataset %in% c("shan","white"))
+write_csv(select(ipsc_mn_als_datasets.paired_end.metadata, sample = dataset_sample, fastq_1, fastq_2, strandedness, dataset, condition, mutation, gender), here(proj_path,"sample-details/ipsc_mn_als_datasets.paired_end.samplesheet.csv"), na = "")
 
 rm(answerals.gene_tpm.male_counts, neurolincs.gene_tpm.male_counts, catanese.gene_tpm.male_counts, dafinca.c9orf72.gene_tpm.male_counts, dafinca.tardbp.gene_tpm.male_counts,  luisier.gene_tpm.male_counts, lee.gene_tpm.male_counts,
    wang.gene_tpm.male_counts, kiskinis.gene_tpm.male_counts, sareen.gene_tpm.male_counts, sommer.gene_tpm.male_counts, sterneckert.gene_tpm.male_counts, kapeli.gene_tpm.male_counts, desantis.gene_tpm.male_counts, smith.gene_tpm.male_counts, bhinge.gene_tpm.male_counts, 
-   hawkins.gene_tpm.male_counts, mouse_als_datasets.gene_tpm.male_counts) 
+   hawkins.gene_tpm.male_counts) 
 
 save.image(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData"))
 
@@ -201,7 +178,6 @@ save.image(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData"))
 # ipsc_mn_als_datasets_with_lee.vsd.ruv.lrt$W5 <- pdat$W_5
 # saveRDS(ipsc_mn_als_datasets_with_lee.vsd.ruv.lrt, here(proj_path,"expression/deseq2/ipsc_mn_als_datasets_with_lee.vsd.ruv.lrt.rds"))
 
-# ipsc_mn_als_datasets = DESeq.analysis(metadata = ipsc_mn_als_datasets.metadata, unique_names = "dataset_sample", design = ~ gender + dataset + condition, contrast = "condition_als_vs_ctrl")
 # saveRDS(ipsc_mn_als_datasets, here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.rds"))
 # ipsc_mn_als_datasets.noiso = DESeq.analysis(metadata = ipsc_mn_als_datasets.noiso.metadata, unique_names = "dataset_sample", design = ~ gender + dataset + condition, contrast = "condition_als_vs_ctrl")
 # saveRDS(ipsc_mn_als_datasets.noiso, here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.noiso.rds"))
@@ -360,54 +336,7 @@ save.image(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData"))
 # saveRDS(tdp43_kd_datasets, here(proj_path,"expression/deseq2/tdp43_kd_datasets.rds"))
 
 
-# Mouse meta ------------------------------------------------------------------
-mouse_als_datasets = DESeq.analysis(metadata = mouse_als_datasets.metadata, unique_names = "sample", design = ~ gender + dataset + condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(mouse_als_datasets, here(proj_path,"expression/deseq2/mouse_als_datasets.rds"))
-mouse_c9orf72_datasets = DESeq.analysis(metadata = mouse_c9orf72_datasets.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(mouse_c9orf72_datasets, here(proj_path,"expression/deseq2/mouse_c9orf72_datasets.rds"))
-mouse_fus_datasets = DESeq.analysis(metadata = mouse_fus_datasets.metadata, unique_names = "sample", design = ~ dataset + condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(mouse_fus_datasets, here(proj_path,"expression/deseq2/mouse_fus_datasets.rds"))
-mouse_sod1_datasets = DESeq.analysis(metadata = mouse_sod1_datasets.metadata, unique_names = "sample", design = ~ gender + dataset + condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(mouse_sod1_datasets, here(proj_path,"expression/deseq2/mouse_sod1_datasets.rds"))
-mouse_tardbp_datasets = DESeq.analysis(metadata = mouse_tardbp_datasets.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(mouse_tardbp_datasets, here(proj_path,"expression/deseq2/mouse_tardbp_datasets.rds"))
-
-barham.metadata = mouse_als_datasets.metadata %>% filter(dataset == "barham")
-barham = DESeq.analysis(metadata = barham.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(barham, here(proj_path,"expression/deseq2/barham.rds"))
-fernandez.metadata = mouse_als_datasets.metadata %>% filter(dataset == "fernandez")
-fernandez = DESeq.analysis(metadata = fernandez.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(fernandez, here(proj_path,"expression/deseq2/fernandez.rds"))
-herskovits.metadata = mouse_als_datasets.metadata %>% filter(dataset == "herskovits")
-herskovits = DESeq.analysis(metadata = herskovits.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(herskovits, here(proj_path,"expression/deseq2/herskovits.rds"))
-lopez.metadata = mouse_als_datasets.metadata %>% filter(dataset == "lopez")
-lopez = DESeq.analysis(metadata = lopez.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(lopez, here(proj_path,"expression/deseq2/lopez.rds"))
-marsala.metadata = mouse_als_datasets.metadata %>% filter(dataset == "marsala")
-marsala = DESeq.analysis(metadata = marsala.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(marsala, here(proj_path,"expression/deseq2/marsala.rds"))
-orourke.metadata = mouse_als_datasets.metadata %>% filter(dataset == "orourke")
-orourke = DESeq.analysis(metadata = orourke.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(orourke, here(proj_path,"expression/deseq2/orourke.rds"))
-rezvykh.metadata = mouse_als_datasets.metadata %>% filter(dataset == "rezvykh")
-rezvykh = DESeq.analysis(metadata = rezvykh.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(rezvykh, here(proj_path,"expression/deseq2/rezvykh.rds"))
-rudnick.metadata = mouse_als_datasets.metadata %>% filter(dataset == "rudnick")
-rudnick = DESeq.analysis(metadata = rudnick.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(rudnick, here(proj_path,"expression/deseq2/rudnick.rds"))
-shan.metadata = mouse_als_datasets.metadata %>% filter(dataset == "shan")
-shan = DESeq.analysis(metadata = shan.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(shan, here(proj_path,"expression/deseq2/shan.rds"))
-phatnani.metadata = mouse_als_datasets.metadata %>% filter(dataset == "phatnani")
-phatnani = DESeq.analysis(metadata = phatnani.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(phatnani, here(proj_path,"expression/deseq2/phatnani.rds"))
-henriques.metadata = mouse_als_datasets.metadata %>% filter(dataset == "henriques")
-henriques = DESeq.analysis(metadata = henriques.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(henriques, here(proj_path,"expression/deseq2/henriques.rds"))
-white.metadata = mouse_als_datasets.metadata %>% filter(dataset == "white")
-white = DESeq.analysis(metadata = white.metadata, unique_names = "sample", design = ~ condition, contrast = "condition_als_vs_ctrl", species = "mouse")
-saveRDS(white, here(proj_path,"expression/deseq2/white.rds"))
 # print("saving")
 # save.image(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.RData"))
 print("complete")
+
