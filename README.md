@@ -14,9 +14,9 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 Knitted HTMLs can be browsed with the links below.
 
-### [RNA-seq QC and motor neuron identities](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_qc.html) 
+### [RNA-seq QC and motor neuron identities](https://oliverziff.github.io/ipsn_als_meta/html/qc_identities.html) 
 
-<img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_identities_pca_heatmap.png" height="800">
+<img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_identities_pca_heatmap.png" height="700">
 
 ### [pan-ALS vs control differential expression](https://oliverziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
 
