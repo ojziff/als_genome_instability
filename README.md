@@ -57,6 +57,16 @@ iPSN RNA sequencing datasets used in this study:
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-For each dataset we processed samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2. Differential splicing was analysed on polyA samples with MAJIQ2. Variant analysis was performed on Answer ALS samples using nf-core/rnavar v1.0.0. RNA fusion analysis was performed on paired-end datasets using nf-core/rnafusion v2.0.0. Schematics were created using Biorender.com.
+For each dataset we processed samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. 
+
+Differential gene expression was performed using DESeq2 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
+
+Differential splicing was analysed on polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
+
+Variant analysis was performed on Answer ALS samples using nf-core/rnavar v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. 
+
+RNA fusion analysis was performed on paired-end datasets using nf-core/rnafusion v2.0.0, utilising the STAR-Fusion workflow. 
+
+Schematics were created using [BioRender](https://biorender.com/).
 
 
