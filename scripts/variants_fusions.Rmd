@@ -260,6 +260,15 @@ kbl(answerals.vcfannotate.s8) %>% kable_styling(bootstrap_options = c("striped",
 # Table S9 RNA fusion events in each sample
 
 ```{r}
+ipsc_mn_als_datasets.starfusion.n = ipsc_mn_als_datasets.starfusion %>% 
+  add_count(dataset_sample) %>% # count number of fusions per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset, sample, condition, fusion_number = n, total_reads, dataset_sample, mutation) #keep 1 row per sample
+ # add samples with 0 fusions
+ipsc_mn_als_datasets.starfusion.samples_no_fusions = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% ipsc_mn_als_datasets.starfusion.n$dataset_sample] 
+ipsc_mn_als_datasets.paired_end.metadata.no_fusions = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% ipsc_mn_als_datasets.starfusion.samples_no_fusions) %>% 
+  left_join(multiqc_rseqc_read_distribution.tsv) %>%
+  mutate(fusion_number = 0) %>% select(dataset_sample, sample, fusion_number, condition, dataset, total_reads, mutation)
+ipsc_mn_als_datasets.starfusion.n = bind_rows(ipsc_mn_als_datasets.starfusion.n, ipsc_mn_als_datasets.paired_end.metadata.no_fusions)
 ipsc_mn_als_datasets.starfusion.table_s9 = ipsc_mn_als_datasets.starfusion.n %>% select(dataset, sample, condition, mutation, fusion_number, total_reads)
 kbl(ipsc_mn_als_datasets.starfusion.table_s9) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
 ```
