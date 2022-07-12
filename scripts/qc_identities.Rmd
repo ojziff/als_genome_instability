@@ -20,7 +20,8 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.height = 8, fig.width = 10)
+library(Cairo)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
 library(here)
 proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
 load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
@@ -29,7 +30,6 @@ proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta
 script_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta")
 shared_path = here("/camp/lab/luscomben/home/users/ziffo/proj-luscombn-patani/working")
 collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
-library(kableExtra)
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
 
 ipsc_mn_als_datasets_with_lee.vsd = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets_with_lee.vsd.rds"))
@@ -140,9 +140,8 @@ celltype.markers.marker <- ipsc_mn_als_datasets_with_lee.vsd.counts %>%
   filter(gene_name %in% celltype.markers.df$gene_name) %>% distinct(gene_name, .keep_all = TRUE) %>% 
   dplyr::mutate_if(is.numeric, funs((. - min_vst)))  %>% 
   arrange(factor(gene_name, levels = celltype.markers.df$gene_name)) %>% select(-gene_id) %>% 
-  # rename_with(~ gsub("dafinca.tardbp", "dafinca", .x, fixed = TRUE)) %>% rename_with(~ gsub("dafinca.c9orf72", "dafinca", .x, fixed = TRUE)) %>% 
   rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% 
-  select(-contains("answerals_CASE")) # keep only 100 Answer ALS samples to improve visualisaiton
+  select(-contains("answerals_CASE"))
 celltype.markers.df.filt = celltype.markers.df %>% filter(gene_name %in% celltype.markers.marker$gene_name)
 celltype.markers.marker.mat <- make_matrix(select(celltype.markers.marker,-gene_name), pull(celltype.markers.marker,gene_name))
 
@@ -239,9 +238,9 @@ ipsc_mn_als_datasets_with_lee.pcaData = ipsc_mn_als_datasets_with_lee.pcaData %>
 # Colour by dataset
 ipsc_mn_als_datasets_with_lee.pca_dataset <- ggplot(ipsc_mn_als_datasets_with_lee.pcaData, aes(PC1, PC2, color=dataset)) + geom_point(size=1) +
   scale_color_manual(values = c("AnswerALS"="#94C09B", "neurolincs.iMN"="#A9B7B7", "neurolincs.diMN"="#BEAED4", "bhinge"= "#7FC97F","catanese"="#7FC97F", "dafinca"="#94C09B", "desantis"="#FEEA92", "kapeli"="#A9B7B7", "kiskinis"="#BEAED4", "luisier"="#D3B4BA", "hawkins"="#E8BAA0", "sareen"="#FDC086", "smith"="#FDD58C", "sommer"="#FFFF99", "sterneckert"="#7A9DA8", "wang"="#BCCEA0","lee.CTRL"="#75489F", "lee.ALS"="#386CB0")) +
-  theme_oz() + theme(legend.text=element_text(size=8), legend.title=element_text(size=7), legend.position = "right", legend.spacing = unit(0.01, 'cm')) + guides(color=guide_legend(keywidth=0.5, keyheight=0.5, default.unit="inch")) +
+  theme_oz() + theme(legend.position = "none") + guides(color=guide_legend(keywidth=0.5, keyheight=0.5, default.unit="inch")) +
   xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[1],"% variance")) +  ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[2],"% variance")) + #coord_fixed() +
-  ggforce::geom_mark_ellipse(aes(label = dataset), label.fontsize = 8, label.fontface = "plain", con.type = "straight", con.cap = 0.5, show.legend = FALSE) + guides(color=guide_legend(title="Dataset", keywidth=0.1, keyheight=0.15, default.unit="inch"))
+  ggforce::geom_mark_ellipse(aes(label = dataset), label.fontsize = 8, label.fontface = "plain", con.type = "straight", con.cap = 0.5, show.legend = FALSE)
 ipsc_mn_als_datasets_with_lee.pca_dataset
 
 # Colour by library_type
@@ -296,7 +295,6 @@ ipsc_mn_als_datasets_with_lee.pca_samtools_mqc_generalstats_samtools_raw_total_s
   xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[1],"% variance")) +  ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[2],"% variance"))
 ipsc_mn_als_datasets_with_lee.pca_samtools_mqc_generalstats_samtools_raw_total_sequences
 
-
 # Color by intronic read % intron_read_pct
 ipsc_mn_als_datasets_with_lee.pca_read_distribution <- ggplot(ipsc_mn_als_datasets_with_lee.pcaData, aes(PC1, PC2, color=introns_tag_pct)) + geom_point(size=1) + 
   theme_oz() + theme(legend.text=element_text(size=6), legend.title=element_text(size=6), legend.position = "top", legend.box = "vertical", legend.spacing = unit(0.1, 'cm')) + 
@@ -346,14 +344,6 @@ ipsc_mn_als_datasets_with_lee.pca_star_mqc_generalstats_star_uniquely_mapped_per
   scale_color_gradient2(midpoint=mean(ipsc_mn_als_datasets_with_lee.pcaData$star_mqc_generalstats_star_uniquely_mapped_percent,na.rm=TRUE), low="blue", mid="white", high="red", label=comma) +
   xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[1],"% variance")) +  ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets_with_lee.pcaData, "percentVar"))[2],"% variance"))
 ipsc_mn_als_datasets_with_lee.pca_star_mqc_generalstats_star_uniquely_mapped_percent
-
-# ipsc_mn_als_datasets_with_lee.pca_nfcore_qc_metrics.merged = ggarrange(
-#   ggarrange(ipsc_mn_als_datasets_with_lee.pca_strandedness, ipsc_mn_als_datasets_with_lee.pca_read_distribution , ncol = 2, labels = c("a","b")),
-#   ggarrange(ipsc_mn_als_datasets_with_lee.pca_samtools_mqc_generalstats_samtools_raw_total_sequences, ipsc_mn_als_datasets_with_lee.pca_quali_map_mqc_generalstats_qualimap_5_3_bias, ncol = 2, labels = c("c","d")),
-#   ggarrange(ipsc_mn_als_datasets_with_lee.pca_biotype_counts_mqc_generalstats_biotype_counts_percent_r_rna, ipsc_mn_als_datasets_with_lee.pca_picard_mqc_generalstats_picard_percent_duplication, ncol = 2, labels = c("e","f")),
-#   ggarrange(ipsc_mn_als_datasets_with_lee.pca_star_mqc_generalstats_star_uniquely_mapped_percent, ipsc_mn_als_datasets_with_lee.pca_samtools_mqc_generalstats_samtools_reads_mapped, ncol = 2, labels = c("g","h")), 
-#   nrow = 4, heights = c(1,1,1,1))
-# # ipsc_mn_als_datasets_with_lee.pca_nfcore_qc_metrics.merged
 
 ```
 
@@ -422,9 +412,8 @@ celltype.markers.marker <- ipsc_mn_als_datasets_with_lee.vsd.counts %>%
   filter(gene_name %in% celltype.markers.df$gene_name) %>% distinct(gene_name, .keep_all = TRUE) %>% 
   dplyr::mutate_if(is.numeric, funs((. - min_vst)))  %>% 
   arrange(factor(gene_name, levels = celltype.markers.df$gene_name)) %>% select(-gene_id) %>% 
-  # rename_with(~ gsub("dafinca.tardbp", "dafinca", .x, fixed = TRUE)) %>% rename_with(~ gsub("dafinca.c9orf72", "dafinca", .x, fixed = TRUE)) %>% 
   rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% 
-  select(-contains("answerals_CASE")) # keep only 100 Answer ALS samples to improve visualisaiton
+  select(-contains("answerals_CASE"))
 celltype.markers.df.filt = celltype.markers.df %>% filter(gene_name %in% celltype.markers.marker$gene_name)
 celltype.markers.marker.mat <- make_matrix(select(celltype.markers.marker,-gene_name), pull(celltype.markers.marker,gene_name))
 
@@ -458,7 +447,6 @@ interneuron.markers <- c(V0.domain,V1,V2a.domain,V2b.domain,V3.domain,"SHOX2")#d
 mn.markers = c(postmitotic.motor.neuron,nonspecific.neuronal)
 
 neuron.type.markers = c(motor.neuron.progenitor, postmitotic.motor.neuron, nonspecific.neuronal,interneuron.markers) 
-neuron.type.markers[!neuron.type.markers %in% gtf$gene_name]
 neuron.type.markers.df = tibble("gene_name" = neuron.type.markers) %>% filter(gene_name %in% neuron.type.markers) %>% 
   mutate(group = case_when(gene_name %in% nonspecific.neuronal ~ "nonspecific.neuronal", gene_name %in% motor.neuron.progenitor ~ "motor.neuron.progenitor", 
                            gene_name %in% postmitotic.motor.neuron ~ "postmitotic.motor.neuron", #gene_name %in% oculomotor.markers ~ "oculomotor.markers", 
@@ -474,9 +462,8 @@ neuron.type.markers.marker <- ipsc_mn_als_datasets_with_lee.vsd.counts %>%
   filter(gene_name %in% neuron.type.markers.df$gene_name) %>% distinct(gene_name, .keep_all = TRUE) %>% 
   dplyr::mutate_if(is.numeric, funs((. - min_vst)))  %>% 
   arrange(factor(gene_name, levels = neuron.type.markers.df$gene_name)) %>% select(-gene_id) %>% 
-  # rename_with(~ gsub("dafinca.tardbp", "dafinca", .x, fixed = TRUE)) %>% rename_with(~ gsub("dafinca.c9orf72", "dafinca", .x, fixed = TRUE)) %>% 
   rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% 
-  select(-contains("answerals_CASE")) # keep only 100 Answer ALS samples to improve visualisaiton
+  select(-contains("answerals_CASE"))
 neuron.type.markers.df.filt = neuron.type.markers.df %>% filter(gene_name %in% neuron.type.markers.marker$gene_name)
 neuron.type.markers.marker.mat <- make_matrix(select(neuron.type.markers.marker,-gene_name), pull(neuron.type.markers.marker,gene_name))
 
@@ -500,9 +487,9 @@ neuron.type.markers.rnaseq.heatmap
 ```
 
 
-## Dorsoventral markers
+## Dorso-ventral markers
 
-From Fig 2 in https://journals.biologists.com/dev/article/148/15/dev199711/271192/Single-cell-transcriptome-profiling-of-the-human 
+Markers are from Fig 2 in https://journals.biologists.com/dev/article/148/15/dev199711/271192/Single-cell-transcriptome-profiling-of-the-human 
 
 ```{r}
 nonspecific.neuronal = c("ELAVL3","MAP2","STMN2")
@@ -534,9 +521,7 @@ neuronal.markers.marker <- ipsc_mn_als_datasets_with_lee.vsd.counts %>%
   filter(gene_name %in% neuronal.markers.df$gene_name) %>% 
   dplyr::mutate_if(is.numeric, funs((. - min_vst)))  %>% 
   arrange(factor(gene_name, levels = neuronal.markers.df$gene_name)) %>% select(-gene_id) %>%
-  # rename_with(~ gsub("dafinca.tardbp", "dafinca", .x, fixed = TRUE)) %>% rename_with(~ gsub("dafinca.c9orf72", "dafinca", .x, fixed = TRUE)) %>% 
-  rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% 
-  select(-contains("answerals_CASE")) # keep only 100 Answer ALS samples to improve visualisaiton
+  rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% select(-contains("answerals_CASE"))
 neuronal.markers.marker.mat <- make_matrix(select(neuronal.markers.marker,-gene_name), pull(neuronal.markers.marker,gene_name))
 
 ### Cluster samples ###
@@ -549,10 +534,8 @@ dorsoventral.markers.heatmap <- Heatmap(t(neuronal.markers.marker.mat),
           bottom_annotation = columnAnnotation(markers = anno_block(gp = gpar(fill = rep("white",7)), labels =  c("dl\ndomains","V0\ndomain", "V1", "V2a\ndomain", "V2b\ndomain", "MN\ndomain", "V3"), labels_gp = gpar(fontsize = 7), labels_rot = 0)),
           column_title = NULL, column_title_gp = gpar(fontsize = 8), 
           cluster_columns = FALSE, cluster_column_slices = FALSE, 
-          # show_row_names = TRUE, row_names_gp = gpar(fontsize = 6, col = c(rep("#386CB0",9), rep("#75489F",9), rep("black",90))), #row_names_rot = 90, 
           cluster_rows = FALSE,
           row_title = NULL, 
-          # row_order = dataset.samples.df$dataset_sample,
           row_split = dataset.samples.df$dataset,
           show_row_names = FALSE, 
           right_annotation = rowAnnotation(datasets = anno_block(gp = gpar(fill = rep("white",18)), 
@@ -563,9 +546,9 @@ dorsoventral.markers.heatmap
 ```
 
 
-## HOX markers
+## Rostro-caudal markers
 
-Regional identity of iPSN
+HOX markers
 
 ```{r}
 HOX.markers <- gtf %>% filter(grepl("^HOX[A-D][0-9]+", gene_name)) %>% distinct(gene_name) %>% pull(gene_name)
@@ -579,9 +562,8 @@ HOX.markers.marker <- ipsc_mn_als_datasets_with_lee.vsd.counts %>% distinct(gene
   filter(gene_name %in% HOX.markers.df$gene_name) %>% 
   dplyr::mutate_if(is.numeric, funs((. - min_vst))) %>% 
   arrange(factor(gene_name, levels = HOX.markers.df$gene_name)) %>% select(-gene_id) %>%
-  # rename_with(~ gsub("dafinca.tardbp", "dafinca", .x, fixed = TRUE)) %>% rename_with(~ gsub("dafinca.c9orf72", "dafinca", .x, fixed = TRUE)) %>% 
   rename_with(~ gsub("mn_d25_", "", .x, fixed = TRUE)) %>% 
-  select(-contains("answerals_CASE")) # keep only 100 Answer ALS samples to improve visualisaiton
+  select(-contains("answerals_CASE"))
 HOX.markers.marker.mat <- make_matrix(select(HOX.markers.marker,-gene_name), pull(HOX.markers.marker,gene_name))
 HOX.markers.marker.centered.mat = t(scale(t(HOX.markers.marker.mat), center=TRUE,scale=FALSE)) # centered, not scaled
 HOX.markers.heatmap <- Heatmap(t(HOX.markers.marker.mat), 
