@@ -276,23 +276,17 @@ kbl(ipsc_mn_als_datasets.starfusion.table_s9) %>% kable_styling(bootstrap_option
 # Table S10 RNA fusion burden
 
 ```{r}
-## Fusions with greatest frequency
 ipsc_mn_als_datasets.starfusion.als.count = ipsc_mn_als_datasets.starfusion %>% filter(condition == "als") %>% count(breakpoints, name = "als_yes")
 ipsc_mn_als_datasets.starfusion.ctrl.count = ipsc_mn_als_datasets.starfusion %>% filter(condition == "ctrl") %>% count(breakpoints, name = "ctrl_yes")
 ipsc_mn_als_datasets.starfusion.als_ctrl.prop = ipsc_mn_als_datasets.starfusion.als.count %>% full_join(ipsc_mn_als_datasets.starfusion.ctrl.count)  %>% replace(is.na(.),0) %>% 
   mutate(als_total = 360, ctrl_total = 90) 
-
-library(ClusterBurden)
 ipsc_mn_als_datasets.starfusion.als_ctrl.burden = ipsc_mn_als_datasets.starfusion.als_ctrl.prop %>% rowwise() %>% 
   mutate(p_value = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total), 
          odds_ratio = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$estimate[1],
          lower_ci = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$conf.int[1], 
          upper_ci = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$conf.int[2])
-
 als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
-als_ctrl.voila.splicing_genes = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_name) %>% pull(gene_name) # 264
-
-# add back gene fusion names
+als_ctrl.voila.splicing_genes = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_name) %>% pull(gene_name)
 ipsc_mn_als_datasets.starfusion.als_ctrl.burden_table = ipsc_mn_als_datasets.starfusion.als_ctrl.burden %>% left_join(distinct(select(ipsc_mn_als_datasets.starfusion, breakpoints, fusion_name, fusion_type))) %>% arrange(p_value) %>% 
   mutate(gene1 = str_split_fixed(fusion_name, "--",2)[,1], gene2 = str_split_fixed(fusion_name, "--",2)[,2], alterated_splicing = case_when(gene1 %in% als_ctrl.voila.splicing_genes | gene2 %in% als_ctrl.voila.splicing_genes ~ "yes", TRUE ~ "")) %>%
   select(fusion_name, breakpoints, fusion_type, als_number = als_yes, ctrl_number = ctrl_yes, odds_ratio, lower_ci, upper_ci, p_value, alterated_splicing)
