@@ -20,7 +20,8 @@ library(gsubfn)
 library(devtools)
 library(janitor)
 library(snakecase)
-library(here)
+library(cowplot)
+library(magick)
 
 library(DESeq2)
 library(tximeta)
@@ -55,6 +56,7 @@ library(seqinr)
 library(GenomicRanges)
 library(GeneStructureTools) # devtools::install_github("betsig/GeneStructureTools")
 library(notNMD) # devtools::install_github('betsig/notNMD')
+library(decoupleR)
 library(progeny)
 library(dorothea)
 library(biomaRt)
@@ -62,12 +64,13 @@ library(irlib) # install_github("jsha129/irlib")
 library(gdata)
 library(piano)
 library(parallel)
-library(GSEABase)
 library(snowfall)
+library(GSEABase)
 library(GencoDymo) # remotes::install_github("monahton/GencoDymo")
 library(VarCon) # remotes::install_github("caggtaagtat/VarCon")  https://bioconductor.org/packages/devel/bioc/manuals/VarCon/man/VarCon.pdf
 library(DEGreport)
-# library(systemPipeR)
+library(systemPipeR)
+library(ClusterBurden)
 
 library(grid)
 library(ggplotify)
@@ -105,6 +108,7 @@ library(raster)
 library(ggrastr)
 library(ggprism)
 library(reshape2)
+library(kableExtra)
 
 options(stringsAsFactors = F)
 
@@ -147,6 +151,8 @@ go.pathways.msigdb <- gmtPathways(here(camp_path,"/genomes/gene-ontology/c5.all.
 # go.cc.pathways.msigdb <- gmtPathways(here(camp_path,"/genomes/gene-ontology/c5.cc.v7.1.symbols.gmt"))# %>% mutate(term = gsub("GO|_", " ", term))
 hallmarks.msigdb <- read.gmt(here(camp_path,"/genomes/gene-ontology/h.all.v7.4.symbols.gmt")) %>% mutate(term = gsub("HALLMARK|_", " ", term))
 # immune.pathways.msigdb <- read.gmt(here(camp_path,"/genomes/gene-ontology/c7.all.v7.1.symbols.gmt"))
+# wikipathways.msigdb <- gmtPathways(here(camp_path,"/genomes/gene-ontology/c2.cp.wikipathways.v7.5.1.symbols.gmt"))# %>% mutate(term = gsub("GO|_", " ", term))
+# hpo.msigdb <- gmtPathways(here(camp_path,"/genomes/gene-ontology/c5.hpo.v7.5.1.symbols.gmt"))# %>% mutate(term = gsub("GO|_", " ", term))
 RNA_BINDING_PROTEINS <- read_excel(here(camp_path,"/genomes/gene-ontology/rbp_consensus_gerstberger_2014.xls"), sheet = "RBP table") %>% dplyr::pull(`gene name`)
 
 # Cell type markers ----------------------
@@ -198,8 +204,8 @@ ALS_GWAS = c("C9orf72", "UNC13A", "SOD1", "SCFD1", "MOBP", "RPSA", "KIF5A", "CFA
 ALS_EWAS = c("DHCR24","FAM167B","LCK","VWA1","IL6R","TTC7A","RXFP4","SGMS2","HCLS1","GOLIM4","SGMS2","SLC7A11","MSMO1","PIK3R1","SLC26A8","GABBR1","FKBP5","SPIDR","C6orf223","SMURF1","RCL1","DNM1","NOLC1","EMG1","KRT2","LPCAT3","C1S","KRT2","RASA3","CILP","CCDC102A","IGF1R","PLEKHF1","ZFPM1","SIRT2","VMP1","NOL4L","ABCG1","TTC38") # https://www.science.org/doi/10.1126/scitranslmed.abj0264
 ALS_modifiers = c("APOE", "VEGFA", "SMN2", "CHGB", "PPARGC1A","SLC52A2", "EPHA4")
 sporadic_ALS_genes = c("NDUFS4","AC106707.1","ZC3H7B","AC023095.1","CCDC59","TXNP1","INPP5F","TNRC18","TOP2A","THRAP3","TRPM3","ATP10A","FAM184B","AC096747.1","NCS1","AC007690.1","AL033528.3","RN7SL33P","COX5A","AL161629.1","SLF1","LIPH","RPL5P16") #https://www.frontiersin.org/articles/10.3389/fgene.2022.851496/full
-leigh_brown_ALS_FTD_genes = c("AR","PRNP","MAPT","ATN1","DNAJC5","DNAJC7","GLT8D1","DNMT1","APP","PSEN2","JPH3","ITM2B","TBP","PFN1","HTT","EPM2A","ATXN1","NOP56","NHLRC1")
-ALS_genes = unique(c(kegg.pathways.msigdb$KEGG_AMYOTROPHIC_LATERAL_SCLEROSIS_ALS, ALS_RBPs, ALS_GWAS, ALS_EWAS, ALS_modifiers, leigh_brown_ALS_FTD_genes, HLA_genes,sporadic_ALS_genes, "OPTN", "ALS2", "VAPB", "CHMP2B","FIG4", "UBQLN2","SQSTM1", "SIGMAR1", "VCP", "DCTN1", "PFN1", "CHCHD10", "TUBA4A", "ANXA11", "DAO", "ERBB4", "SPG11", "SPTLC1", "CCNF", "STMN2","IL18RAP")) # https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=Amyotrophic+lateral+sclerosis https://www.ncbi.nlm.nih.gov/books/NBK1450/ https://www.sciencedirect.com/science/article/pii/S2352396421005892?via%3Dihub 
+leigh_brown_ALS_FTD_genes = c("AR","PRNP","MAPT","ATN1","DNAJC5","DNAJC7","GLT8D1","DNMT1","APP","PSEN2","JPH3","ITM2B","TBP","PFN1","HTT","EPM2A","ATXN1","NOP56","NHLRC1", "UNC13A","UNC13B", "STMN2")
+ALS_genes = unique(c(kegg.pathways.msigdb$KEGG_AMYOTROPHIC_LATERAL_SCLEROSIS_ALS, ALS_RBPs, ALS_GWAS, ALS_EWAS, ALS_modifiers, leigh_brown_ALS_FTD_genes, HLA_genes,"OPTN", "ALS2", "VAPB", "CHMP2B","FIG4", "UBQLN2","SQSTM1", "SIGMAR1", "VCP", "DCTN1", "PFN1", "CHCHD10", "TUBA4A", "ANXA11", "DAO", "ERBB4", "SPG11", "SPTLC1", "CCNF", "STMN2","IL18RAP")) # https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=Amyotrophic+lateral+sclerosis https://www.ncbi.nlm.nih.gov/books/NBK1450/ https://www.sciencedirect.com/science/article/pii/S2352396421005892?via%3Dihub 
 
 focal.adhesion.go <- c("LAP3", "CD99", "LASP1", "ABCB4", "ITGA3", "ITGA2B", "RALA", "CD9", "MRC2", "TSPAN9", "PLAUR", "EHD3", "CAPN1", "FHL1", "VIM", "CD44", "ARHGAP31", "VCL", "TNC", "CTNNA1", "HSPA5", "LIMA1", "BCAR1", "CYBA", "SYNE2", "GDI2", "PPP1R12A", "NCKAP1", "RPL18", "CNN2", "SLC9A3R2", "TLE2", "RHOA", "FGFR3", "PABPC1", "CDC42", "MAP4K4", "RPL31", "ACTN1", "LIMS2", "PVR", "FERMT2", "CLASP1", "HACD3", "ACTB", "REXO2", "MCAM", "USP33", "APBB1IP", "ACTN2", "ITGA8", "FAP", "TNS1", "SENP1", "DNM2", "EPB41L2", "RAB21", "PTPRC", "ITGB5", "RPS5", "FAT1", "RAB10", "CD59", "CPNE3", "CTTN", "NOX4", "TRIP6", "ADD1", "CASS4", "ASAP3", "RPL6", "RPLP0", "PXN", "SLC9A1", "ICAM1", "ITGA6", "SNAP23", "EZR", "SORBS1", "JAK2", "NRP1", "MISP", "MAPK1", "TRIOBP", "PACSIN2", "RPL3", "MYH9", "ZFYVE21", "PROCR", "FERMT1", "HCK", "MAPRE1", "CD99L2", "ARHGEF7", "FLT1", "MAPK3", "CORO2B", "RPS16", "RPS19", "ITGB8", "CAV2", "CAV1", "HSPB1", "LIMK1", "ENG", "PDLIM1", "GIT1", "RPL19", "PFN1", "SLC6A4", "YWHAE", "LAMTOR3", "HSPA8", "LPXN", "CBL", "CD81", "RPS13", "PPFIBP1", "CORO1C", "TNS2", "TRPV4", "ARPC3", "NEDD9", "OPRM1", "WASF1", "PTK7", "HSPA9", "PDGFRB", "PRKAR2A", "ACTR3", "EPB41L5", "ITGB6", "ITGA4", "RPS15", "IL1RL1", "FHL2", "RND3", "RPL22", "RHOU", "ARHGEF2", "DOCK7", "CD46", "CNN3", "GNA13", "TEK", "SORBS3", "PTK2B", "CAT", "RPL5", "PLAU", "ADGRE5", "LRP1", "SDC4", "STX16", "RPS10", "AHNAK", "EFNB2", "RPL23", "VASP", "FLRT3", "RRAS", "AP006333.1", "AIF1L", "MAP2K2", "PTPN12", "CDC42EP1", "RAC2", "FLNC", "ARHGAP22", "PALLD", "AJUBA", "STARD8", "CNN1", "NECTIN2", "ACTN4", "ARPC1B", "PAK4", "AKAP12", "CAP1", "RPL27", "PPFIA1", "TNS4", "ITGB4", "FLOT2", "PTPRA", "DCTN4", "MPRIP", "KRAS", "RRAS2", "NUMB", "YWHAQ", "ANXA1", "TES", "AVIL", "FLNB", "LMO7", "LCP1", "TNS3", "RAC1", "ARPC5L", "TLN1", "HMGA1", "FLOT1", "MDC1", "ATAT1", "SDCBP", "RDX", "KIF23", "ITGA11", "RPLP1", "ADAM10", "BCAR3", "ACTR2", "ITGAV", "ARHGAP24", "SCARB2", "PARVG", "GIT2", "ITGB7", "IQGAP1", "TGFB1I1", "ARMC5", "CDH13", "RPS2", "PDPK1", "CLTC", "GRB7", "RPS11", "RPL13A", "EPHA2", "HSPG2", "RPS8", "MTF2", "DCAF6", "PRUNE1", "PIP5K1A", "S100A7", "ARF1", "RHOB", "FBLN7", "LIMD1", "PHLDB2", "LPP", "RPS3A", "ARHGAP26", "G3BP1", "GNA12", "EGFR", "SH3KBP1", "CASK", "MSN", "ZNF185", "RPL7", "GSN", "RPL7A", "RSU1", "CAPN5", "PAK1", "RPS3", "HYOU1", "ITGB1", "DIXDC1", "TWF1", "ADAM17", "DST", "ARL14EP", "TADA1", "GJA1", "DAB2", "THY1", "PGM5", "ENAH", "SORBS2", "RPL30", "MMP14", "FZD1", "SHROOM4", "CSRP1", "ACTC1", "ZYX", "ITGB2", "RPL8", "NPHS1", "ITGA5", "JAK1", "FBLIM1", "NEXN", "ARPC5", "DDR2", "NCSTN", "CAPN2", "XIRP2", "ARPC2", "NFASC", "CLASP2", "RPL9", "ANXA5", "ITGA2", "RPS14", "DLC1", "SLC4A2", "YWHAZ", "HNRNPK", "ARF6", "ILK", "HSP90B1", "B2M", "PPIB", "YWHAB", "MAPRE2", "PDIA3", "TPM4", "SRP68", "CTNNB1", "FAM107A", "IRF2", "XIRP1", "ADAM9", "SNTB2", "TM4SF20", "MAP2K1", "PTK2", "LIMS1", "ALCAM", "YWHAG", "PDCD6IP", "CDH2", "RPS9", "RPS7", "TLN2", "KLF11", "SNTB1", "BSG", "GNB2", "SYNPO2", "CORO1B", "CFL1", "RPL38", "DAG1", "PEAK1", "CSPG4", "JUP", "RPL4", "CSRP2", "YES1", "RHOG", "RPLP2", "CD151", "FLII", "PLEC", "GAK", "CALR", "FZD2", "NPM1", "ADGRB1", "FES", "CAV3", "RPS17", "FHL3", "ACTG1", "UBOX5", "FLRT2", "LMLN", "P4HB", "ATP6V0C", "PIP5K1C", "PPP1CC", "CHP1", "SPRY4", "NHS", "PEAK3", "FOCAD", "PARVB", "PPIA", "EVL", "AFAP1", "MME", "PDLIM7", "FLNA", "ANXA6", "IGF2R", "PCBP2", "SRC", "SVIL", "DPP4", "PARVA", "RPL37A", "RPL12", "MPZL1", "RPS4X", "ITGBL1", "RPL10A", "L1CAM", "TGM2", "LAYN", "HSPA1B", "HSPA1A", "ARL2", "PPP1CB", "RPS29", "ITGA1", "TSPAN4", "RPS18", "ALKBH6", "PI4KA", "SCARF2", "ACTN3", "LIMS4", "LIMS3", "ITGB3", "AC068234.1", "CYFIP1", "PRAG1", "MARCKS")
 collagen.formation.go <- c("FOXC1","COL11A1","COL5A3","ADAMTS2","TGFB2","MMP11","CHADL","COMP","PLOD3","AEBP1","TGFBR1","COL1A1","COL12A1","LOX","LOXL3","FMOD","P4HA1","COLGALT1","PXDN","COL5A1","LOXL2","CYP1B1","EMILIN1","LOXL4","ADAMTS14","COL2A1","LUM","RB1","P3H4","DPT","SFRP2","SERPINH1","VIPAS39","ADAMTS3","ACAN","DDR2","COL1A2","ATP7A","GREM1","SERPINF2","TNXB","COL3A1","FOXC2","ANXA2","COL14A1","OPTC","NF1","COL11A2","COL5A2","SCX","MIR29B1","MIR29B2 MMP25","MRC2","FAP","COL19A1","ADAMTS2","MMP2","MMP11","MMP9","CST3","MMP15","VSIR","CTSD","MMP8","MMP19","PEPD","MMP24","CTSL","MMP7","MMP20","MMP27","MMP13","ADAMTS14","FURIN","CTSK","ADAM15","MMP3","ITGB1","MMP21","MMP16","ADAMTS3","MMP14","CTSS","CTSB","MMP10","MMP26","KLK6","PHYKPL","TMPRSS6","MMP23B","PRTN3","MMP1","COL13A1","MMP17","COL15A1","MMP12","MMP28","PRSS2","MMP25","MRC2","VIM","TRAM2","FAP","COL19A1","ADAMTS2","MMP2","P2RX7","P3H2","SUCO","MMP11","HIF1A","MMP9","CST3","RGCC","MMP15","SMPD3","TGFB1","PLOD3","ENG","VSIR","COL1A1","P3H3","TNS2","PPARD","PDGFRB","ERRFI1","RAP1A","P3H1","CTSD","MMP8","MYB","ARG1","CCN2","TGFB3","GOT1","MMP19","PEPD","AMELX","BMP4","MMP24","ID1","COL5A1","PPARG","CTSL","IL6","MMP7","MMP20","MMP27","MMP13","EMILIN1","ADAMTS14","FURIN","ARRB2","CBX8","P3H4","RCN3","CTSK","ADAM15","SERPINH1","MMP3","ITGB1","VIPAS39","MMP21","MMP16","ADAMTS3","MMP14","CREB3L1","CYGB","WNT4","CTSS","NPPC","IHH","UCN","ITGA2","COL1A2","CTSB","LARP6","SERPINB7","MFAP4","MMP10","MMP26","SERPINF2","KLK6","TNXB","PHYKPL","CIITA","F2","F2R","VPS33B","TMPRSS6","MMP23B","PRTN3","HDAC2","MMP1","COL13A1","MMP17","COL15A1","MIR149","MIR218-1","MIR218-2","SCX","MMP12","MMP28","PRSS2","MIR145","MIR92A1","MIR29B1","MIR29A","MIR21","MIR29B2","MIR92A2","COL4A4","COL1A1","COL4A2","ITGA11","UBASH3B","DDR2","ITGA2","SYK","COL4A3","OSCAR","COL4A1","COL4A5","COL4A6","DDR1","TLL1","COL9A2","COL23A1","LAMA3","LAMC2","COL11A1","COL17A1","P4HA2","COL5A3","COL4A4","COL19A1","PLOD1","COL16A1","ADAMTS2","P3H2","ITGA6","COL9A3","TLL2","MMP9","COL20A1","PCOLCE","PLOD3","COL1A1","P3H3","COL12A1","COL9A1","LOX","COL7A1","LOXL3","P3H1","P4HA1","COL10A1","COL21A1","LOXL1","COLGALT1","PXDN","COL5A1","ITGB4","LOXL2","COL4A2","CTSL","CTSV","MMP7","MMP20","MMP13","LOXL4","ADAMTS14","COL2A1","COL6A1","COL6A2","COL8A1","SERPINH1","P4HA3","MMP3","PLOD2","ADAMTS3","COL26A1","CTSS","COL6A3","PCOLCE2","COL1A2","CTSB","PPIB","BMP1","COL3A1","COL4A3","COL22A1","CRTAP","COL24A1","COL8A2","COL6A5","CD151","PLEC","COL18A1","P4HB","COL4A1","COL14A1","COL4A5","COL25A1","COL27A1","LAMB3","COL13A1","COL4A6","COLGALT2","COL11A2","COL5A2","COL15A1","COL6A6","COL28A1")
@@ -292,7 +298,9 @@ RNA.polyadenylation <- c("PAF1","ZC3H3","PABPC1","CPSF1","SNRPA","YTHDC1","PAPOL
 exosome.complex <- c("MTREX","EXOSC7","EXOSC5","DIS3","KHSRP","GTPBP1","EXOSC3","EXOSC8","EXOSC9","EXOSC2","WDR74","ZFC3H1","MPHOSPH6","PNPT1","NVL","DIS3L2","CARHSP1","SUPV3L1","DIS3L","EXOSC1","EXOSC10","EXOSC4","C1D","EXOSC6")
 # response.to.typeIinterferon <- c("SP100","IFI35","IP6K2","UBE2K","MAVS","OAS1","MUL1","HSP90AB1","TTLL12","SAMHD1","CACTIN","TYK2","CDC37","OAS3","OAS2","PTPN6","WNT5A","STAT1","IRF6","IFIT3","IFIT2","IFNA6","IFNA8","EGR1","TRIM6","ZBP1","IRF1","IRF3","IFI6","IRF5","BST2","SHFL","XAF1","RSAD2","OASL","RNASEL","IFNA21","IRF4","NLRC5","IRF8","IFITM3","IFNAR1","IFNA5","IFNA16","MX1","IFNAR2","ADAR","JAK1","GBP2","DCST1","ABCE1","METTL3","IFI27","FADD","IRF2","TRIM56","STAT2","IFNB1","ISG20","MYD88","PTPN2","PTPN11","SETD2","SHMT2","MX2","TBK1","IRAK1","USP18","IFITM2","IRF7","YTHDF3","IFIT1","IFITM1","IFNA10","ISG15","IFNA2","PTPN1","IFNA1","YTHDF2","CNOT7","PSMB8","HLA-C","HLA-E","HLA-G","HLA-F","HLA-A","TREX1","IRF9","IFNA7","IFNA14","IFNA13","HLA-B","IFNA17","IFNA4","LSM14A","MMP12","IKBKE","MIR21")	
 # response.to.typeIinterferon <- c("SP100","IFI35","IP6K2","UBE2K","MAVS","OAS1","MUL1","HSP90AB1","TTLL12","SAMHD1","CACTIN","TYK2","CDC37","OAS3","OAS2","PTPN6","WNT5A","STAT1","IRF6","IFIT3","IFIT2","IFNA6","IFNA8","EGR1","TRIM6","ZBP1","IRF1","IRF3","IFI6","IRF5","BST2","SHFL","XAF1","RSAD2","OASL","RNASEL","IFNA21","IRF4","NLRC5","IRF8","IFITM3","IFNAR1","IFNA5","IFNA16","MX1","IFNAR2","ADAR","JAK1","GBP2","DCST1","ABCE1","METTL3","IFI27","FADD","IRF2","TRIM56","STAT2","IFNB1","ISG20","MYD88","PTPN2","PTPN11","SETD2","SHMT2","MX2","TBK1","IRAK1","USP18","IFITM2","IRF7","YTHDF3","IFIT1","IFITM1","IFNA10","ISG15","IFNA2","PTPN1","IFNA1","YTHDF2","CNOT7","PSMB8","HLA-C","HLA-E","HLA-G","HLA-F","HLA-A","TREX1","IRF9","IFNA7","IFNA14","IFNA13","HLA-B","IFNA17","IFNA4","LSM14A","MMP12","IKBKE","MIR21")	
-p53.signalling.pathway = unique(c(gprofiler_database$`TP53 Network`, go.pathways.msigdb$GO_P53_BINDING, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_DNA_DAMAGE_RESPONSE_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_INTRINSIC_APOPTOTIC_SIGNALING_PATHWAY_BY_P53_CLASS_MEDIATOR))
+# p53.signalling.pathway = unique(c(gprofiler_database$`TP53 Network`, go.pathways.msigdb$GO_P53_BINDING, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_DNA_DAMAGE_RESPONSE_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR, go.pathways.msigdb$GO_POSITIVE_REGULATION_OF_INTRINSIC_APOPTOTIC_SIGNALING_PATHWAY_BY_P53_CLASS_MEDIATOR))
+p53.signalling.pathway = unique(c(go.pathways.msigdb$GO_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR))
+p53.DDR.repair_gene_set = unique(c(p53.signalling.pathway, gprofiler_database$`DNA Damage Response`,gprofiler_database$`DNA repair`))
 
 fractionation_labels = c("MALAT1", "GAPDH", "NEAT", "MALAT1", "GFAP", "TUBB", "ASH2L", "PAF49", "CENPA", "CHOP", "EIF6", "ERS1", "H2AX", "H2AZ1", "H4F3", "H3F3B", "LSD1", "LMNA", "LMNC", "MYC", "NOP2", "NUP98", "SIR1", "SRSF2")
 fractionation_labels_filt = c("MLXIPL", "MALAT1", "GAPDH", "NEAT1", "GLUL", "ACTB", "ASS1", " SLC2A2", "APOE", "PCK1", "MALAT1", "GFAP", "TUBB", "PAF49", "CHOP", "ERS1", "H4F3", "LSD1", "HIST", "LMNC", "NOP2", "NUP98", "SIR1", "HIST4H4", "HIST1H2APS3", "HIST1H2APS5", "HIST2H2BD", "HIST2H2BF", "HIST2H2BK", "HIST2H2AK", "HIST1H2PS3") #NLRP6 GCGR
@@ -347,7 +355,8 @@ my_summarise <- function(data, var, ...) {
   data %>% 
     group_by(...) %>%
     summarise(
-      "mean_{{var}}" := mean({{ var }}, na.rm = TRUE), "median_{{var}}" := median({{ var }}, na.rm = TRUE), "sd_{{var}}" := sd({{ var }}, na.rm = TRUE),
+      "mean_{{var}}" := mean({{ var }}, na.rm = TRUE), "median_{{var}}" := median({{ var }}, na.rm = TRUE), 
+      "sd_{{var}}" := sd({{ var }}, na.rm = TRUE), "Q1_{{var}}" := quantile({{ var }}, probs = 0.25), "Q3_{{var}}" := quantile({{ var }}, probs = 0.75),
       "min_{{var}}" := min({{ var }}, na.rm = TRUE), "max_{{var}}" := max({{ var }}, na.rm = TRUE), "sum_{{var}}" := sum({{ var }}, na.rm = TRUE),
       "n_{{var}}" := n()
     )
@@ -444,7 +453,7 @@ blank_theme <- function () { theme_minimal() + theme(axis.title.x = element_blan
 
 
 # Gene Expression Functions ------------------
-DESeq.analysis <- function(metadata, design = NULL, contrast = NULL, combine.contrasts = FALSE, LRT_full = NULL, LRT_reduced = NULL, join_multiqc = TRUE, species = "human", 
+DESeq.analysis <- function(metadata, design = ~1, contrast = NULL, combine.contrasts = FALSE, LRT_full = NULL, LRT_reduced = NULL, join_multiqc = TRUE, species = "human", run_deseq = TRUE,
                            unique_names = "sample", salmon_names = "sample", irfinder_names = "sample", # each sample may have a different filename for salmon and irfinder. For the dataframe, sample rownames need to be unique (unique_names)
                            transcript.level = FALSE, run_irfinder = FALSE, irfinder_design = NULL, irfinder_contrast_variable = "condition"){
   
@@ -470,69 +479,71 @@ DESeq.analysis <- function(metadata, design = NULL, contrast = NULL, combine.con
     metadata = metadata %>% left_join(multiqc_data) # need unique sample names - only works if sample & dataset are unique. If multiple dataset names within a single multiqc_general_stats.txt then will only join the first dataset name
   }
   
-  # salmon files
-  metadata.salmon_files = metadata %>% mutate(file_salmon = file.path(database_dir, "nfcore/star_salmon", metadata[[salmon_names]], "quant.sf")) %>% pull(file_salmon)
-  names(metadata.salmon_files) = metadata %>% pull({{unique_names}}) # sample filename in nfcore outdir
-  rownames(metadata) <- metadata %>% pull({{unique_names}})  # unique sample name
-  if (FALSE %in% file.exists(metadata.salmon_files)){
-    missing.bams = metadata.salmon_files[file.exists(metadata.salmon_files) == FALSE] # print any missing files to console, these will cause tximport to fail.
-    print(missing.bams)
-    stop("these bam files do not exist")
-  }
-  
-  if(species == "human"){
-    cat(blue("using human gene names\n"))
-    transcript_gene=tx2gene
-    gene_ensembl=gene2ens
-  } else if(species == "mouse"){
-    cat(blue("using mouse gene names\n"))
-    transcript_gene=mus.musculus.tx2gene
-    gene_ensembl=mus.musculus.gene2ens
-  }
-  
-  if(is.null(LRT_full) == TRUE){
-    cat(red(paste("Running DESeq2 with Wald test: Design =",design,". Results Contrast =", contrast, ".\n")))
-    dds <- tximport(metadata.salmon_files, type="salmon", tx2gene=transcript_gene) %>% DESeqDataSetFromTximport(colData = metadata, design = design) %>% DESeq()
-  } else if (is.null(LRT_full) == FALSE){
-    cat(red(paste("Running DESeq2 with Likelihood ratio test: Full model =", LRT_full, ". Reduced model =", LRT_reduced, ". Results Contrast =", contrast, ".\n")))
-    dds <- tximport(metadata.salmon_files, type="salmon", tx2gene=transcript_gene) %>% DESeqDataSetFromTximport(colData = metadata, design = LRT_full) %>% DESeq(test = "LRT", reduced = LRT_reduced)
-    res <- DESeq2::results(dds) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
-  }
-  vsd <- vst(dds, blind=TRUE)
-  vsd.counts <- as_tibble(assay(vsd), rownames = "gene_id") %>% left_join(gene_ensembl)
-  print(resultsNames(dds))
-  
-  if(length(contrast) == 1 | combine.contrasts == TRUE){
-    if(is.null(contrast) == FALSE & combine.contrasts == FALSE){ 
-      res <- DESeq2::results(dds, name = contrast) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
-      # lfcshrink <- DESeq2::lfcShrink(dds, coef = contrast, type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
-    } else if (is.null(contrast) == FALSE & combine.contrasts == TRUE) {
-      res <- DESeq2::results(dds, contrast = contrast) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
-      # lfcshrink <- DESeq2::lfcShrink(dds, coef = contrast, type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
+  if(run_deseq == TRUE){
+    # salmon files
+    metadata.salmon_files = metadata %>% mutate(file_salmon = file.path(database_dir, "nfcore/star_salmon", metadata[[salmon_names]], "quant.sf")) %>% pull(file_salmon)
+    names(metadata.salmon_files) = metadata %>% pull({{unique_names}}) # sample filename in nfcore outdir
+    rownames(metadata) <- metadata %>% pull({{unique_names}})  # unique sample name
+    if (FALSE %in% file.exists(metadata.salmon_files)){
+      missing.bams = metadata.salmon_files[file.exists(metadata.salmon_files) == FALSE] # print any missing files to console, these will cause tximport to fail.
+      print(missing.bams)
+      stop("these bam files do not exist")
     }
-    if(is.null(contrast) == FALSE){ cat(blue(paste("Significant events: padj < 0.05 = ", nrow(filter(res, padj < 0.05)), ", pvalue < 0.05 = ", nrow(filter(res, pvalue < 0.05)),"\n"))) }
-  } else if(length(contrast) > 1 & combine.contrasts == FALSE){
-    cat(green(paste(length(contrast), "contrasts specified")))
-    res <- list() # lfcshrink <- list()
-    for(i in seq_along(contrast)) {
-      res[[i]] <- DESeq2::results(dds, name = contrast[[i]]) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
-      names(res)[i] <- contrast[[i]]
-      # lfcshrink[[i]] <- DESeq2::lfcShrink(dds, coef = contrast[[i]], type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
-      # names(lfcshrink)[i] <- contrast[[i]]
+    
+    if(species == "human"){
+      cat(blue("using human gene names\n"))
+      transcript_gene=tx2gene
+      gene_ensembl=gene2ens
+    } else if(species == "mouse"){
+      cat(blue("using mouse gene names\n"))
+      transcript_gene=mus.musculus.tx2gene
+      gene_ensembl=mus.musculus.gene2ens
     }
-  }
-  
-  if(transcript.level == TRUE){
-    cat(blue("Running transcript level analysis\n"))
-    dds.tx <- tximport(metadata.salmon_files, type="salmon", txOut = TRUE) %>% DESeqDataSetFromTximport(colData = metadata, design = design) %>% DESeq()
+    
+    if(is.null(LRT_full) == TRUE){
+      cat(red(paste("Running DESeq2 with Wald test: Design =",design,". Results Contrast =", contrast, ".\n")))
+      dds <- tximport(metadata.salmon_files, type="salmon", tx2gene=transcript_gene) %>% DESeqDataSetFromTximport(colData = metadata, design = design) %>% DESeq()
+    } else if (is.null(LRT_full) == FALSE){
+      cat(red(paste("Running DESeq2 with Likelihood ratio test: Full model =", LRT_full, ". Reduced model =", LRT_reduced, ". Results Contrast =", contrast, ".\n")))
+      dds <- tximport(metadata.salmon_files, type="salmon", tx2gene=transcript_gene) %>% DESeqDataSetFromTximport(colData = metadata, design = LRT_full) %>% DESeq(test = "LRT", reduced = LRT_reduced)
+      res <- DESeq2::results(dds) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
+    }
+    vsd <- vst(dds, blind=TRUE)
+    vsd.counts <- as_tibble(assay(vsd), rownames = "gene_id") %>% left_join(gene_ensembl)
+    print(resultsNames(dds))
+    
     if(length(contrast) == 1 | combine.contrasts == TRUE){
-      if(is.null(contrast) == FALSE & combine.contrasts == FALSE){ res.tx <- DESeq2::results(dds.tx, name = contrast) %>% as_tibble(rownames = "transcript_id") %>% left_join(transcript_gene, by="transcript_id") %>% arrange(-abs(stat)) 
-      } else if (is.null(contrast) == FALSE & combine.contrasts == TRUE) {res.tx <- DESeq2::results(dds.tx, contrast = contrast) %>% as_tibble(rownames = "transcript_id") %>% left_join(transcript_gene, by="transcript_id") %>% arrange(-abs(stat)) }
+      if(is.null(contrast) == FALSE & combine.contrasts == FALSE){ 
+        res <- DESeq2::results(dds, name = contrast) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
+        # lfcshrink <- DESeq2::lfcShrink(dds, coef = contrast, type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
+      } else if (is.null(contrast) == FALSE & combine.contrasts == TRUE) {
+        res <- DESeq2::results(dds, contrast = contrast) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
+        # lfcshrink <- DESeq2::lfcShrink(dds, coef = contrast, type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
+      }
+      if(is.null(contrast) == FALSE){ cat(blue(paste("Significant events: padj < 0.05 = ", nrow(filter(res, padj < 0.05)), ", pvalue < 0.05 = ", nrow(filter(res, pvalue < 0.05)),"\n"))) }
     } else if(length(contrast) > 1 & combine.contrasts == FALSE){
-      res.tx <- list()
+      cat(green(paste(length(contrast), "contrasts specified")))
+      res <- list() # lfcshrink <- list()
       for(i in seq_along(contrast)) {
-        res.tx[[i]] <- DESeq2::results(dds.tx, name = contrast[[i]]) %>% as_tibble(rownames = "transcript_id") %>% left_join(tx2gene, by="transcript_id") %>% arrange(-abs(stat)) 
-        names(res.tx)[i] <- contrast[[i]]
+        res[[i]] <- DESeq2::results(dds, name = contrast[[i]]) %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(-abs(stat)) 
+        names(res)[i] <- contrast[[i]]
+        # lfcshrink[[i]] <- DESeq2::lfcShrink(dds, coef = contrast[[i]], type = "ashr") %>% as_tibble(rownames = "gene_id") %>% left_join(gene_ensembl) %>% arrange(pvalue) 
+        # names(lfcshrink)[i] <- contrast[[i]]
+      }
+    }
+    
+    if(transcript.level == TRUE){
+      cat(blue("Running transcript level analysis\n"))
+      dds.tx <- tximport(metadata.salmon_files, type="salmon", txOut = TRUE) %>% DESeqDataSetFromTximport(colData = metadata, design = design) %>% DESeq()
+      if(length(contrast) == 1 | combine.contrasts == TRUE){
+        if(is.null(contrast) == FALSE & combine.contrasts == FALSE){ res.tx <- DESeq2::results(dds.tx, name = contrast) %>% as_tibble(rownames = "transcript_id") %>% left_join(transcript_gene, by="transcript_id") %>% arrange(-abs(stat)) 
+        } else if (is.null(contrast) == FALSE & combine.contrasts == TRUE) {res.tx <- DESeq2::results(dds.tx, contrast = contrast) %>% as_tibble(rownames = "transcript_id") %>% left_join(transcript_gene, by="transcript_id") %>% arrange(-abs(stat)) }
+      } else if(length(contrast) > 1 & combine.contrasts == FALSE){
+        res.tx <- list()
+        for(i in seq_along(contrast)) {
+          res.tx[[i]] <- DESeq2::results(dds.tx, name = contrast[[i]]) %>% as_tibble(rownames = "transcript_id") %>% left_join(tx2gene, by="transcript_id") %>% arrange(-abs(stat)) 
+          names(res.tx)[i] <- contrast[[i]]
+        }
       }
     }
   }
@@ -704,31 +715,40 @@ res_top <- function(r, i=1) {
 
 
 # Gene Expression Plots ------------------------------------------------------
-
-ma_plot_deseq <- 
-  function(data = mn_d25.res, labels_list = ma.labels){
-    labels_maplot <- data %>% filter(gene_name %in% labels_list)
-    ggplot(data = data, aes(x = baseMean, y = log2FoldChange, colour = padj < 0.05)) +  # NB if pvalue == NA then will not show
-      geom_point(size = 0.5) +
-      scale_colour_manual( values = c("darkgray", "firebrick2") ) +  theme_bw() +  theme(panel.grid = element_blank(), legend.title = element_blank(), legend.position = "none") +
-      xlab(expression( Log[2]~mean~expression )) + ylab(expression(Log[2]~fold~change~VCP:CTRL)) + 
-      geom_text_repel(data = labels_maplot, aes(x = baseMean, y = log2FoldChange, label = gene_name), fontface = "italic", colour = "black", min.segment.length = 0, box.padding = 0.5, point.padding = 0, size=3, max.overlaps = Inf) +
-      geom_hline(yintercept = 0, linetype = 2)
+ma_plot <- function(deseq_res, title = NULL, subtitle = NULL, gene_labels = NULL, distinct_labels = TRUE, arrow_labels = FALSE, numerator = NULL, denomenator = NULL, ymax = 10, xmax = 100000, xpos = 0.5, dpi = 300, significance_threshold = "padj"){
+  deseq_res <- deseq_res %>% mutate(sig = case_when(!!sym(significance_threshold) < 0.05 & abs(log2FoldChange) < 1 ~ "sig", !!sym(significance_threshold) < 0.05 & abs(log2FoldChange) >= 1 ~ "sig_strong", !!sym(significance_threshold) >= 0.05 ~ "non_sig"), 
+                                    direction = ifelse(log2FoldChange > 0, "up", "down"), class = paste(sig, direction), log2FoldChange = case_when(log2FoldChange > xmax ~ Inf, log2FoldChange < -xmax ~ -Inf, TRUE ~ log2FoldChange), pvalue = case_when(-log10(pvalue) > ymax ~ 10^-ymax, TRUE ~ pvalue))
+  
+  plot <- ggplot(data = deseq_res, aes(x = baseMean, y = log2FoldChange)) +  # NB if pvalue == NA then will not show
+    ggrastr::rasterise(geom_point(aes(colour = class), size = 0.5), dpi = dpi) +
+    scale_colour_manual(values = c("non_sig up" = "gray", "non_sig down" = "gray", 
+                                   "sig up" = "#F36F6F",
+                                   "sig_strong up" = "#EB4445",
+                                   "sig down" = "#A6CEE3",#"#4F8FC4",
+                                   "sig_strong down" = "#79B1D3")) +
+    labs(x = expression(log[2]~base~mean~expression), y = paste0("log2 fold change (",numerator," vs ",denomenator,")"), title = title, subtitle = subtitle) + guides(colour = "none") +
+    scale_y_continuous(expand = c(0,0), limits = c(-ymax,ymax)) +scale_x_continuous(limits = c(0,xmax)) +
+    theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+    geom_hline(yintercept = 0, linetype = 'dotted')
+  
+  
+  if(!is.null(gene_labels)){
+    if(distinct_labels == TRUE){
+      plot <- plot + geom_text_repel(fontface = "italic", data = distinct(arrange(filter(deseq_res, gene_name %in% gene_labels), wt = -abs(stat)), gene_name, .keep_all = TRUE), aes(x = baseMean, y = log2FoldChange, label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3)
+    } else if(distinct_labels == FALSE){
+      plot <- plot + geom_text_repel(fontface = "italic", data = arrange(filter(deseq_res, gene_name %in% gene_labels), wt = -abs(stat)), aes(x = baseMean, y = log2FoldChange, label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"),size = 2.3)
+    }
   }
-
-ma_plot_deseq.pvalue <- 
-  function(data = mn_d25.res, labels_list = ma.labels){
-    labels_maplot <- data %>% filter(gene_name %in% labels_list) %>% arrange(pvalue) %>% distinct(gene_name, .keep_all = TRUE)
-    ggplot(data = data, aes(x = baseMean, y = log2FoldChange, colour = pvalue < 0.05)) +  # NB if pvalue == NA then will not show
-      geom_point(size = 0.5) +
-      scale_colour_manual( values = c("darkgray", "firebrick2") ) +  theme_bw() +  theme(panel.grid = element_blank(), legend.title = element_blank(), legend.position = "none") +
-      xlab(expression( Log[2]~mean~expression )) + ylab(expression(Log[2]~fold~change~VCP:CTRL)) + 
-      geom_text_repel(data = labels_maplot, aes(x = baseMean, y = log2FoldChange, label = gene_name), fontface = "italic", colour = "black", min.segment.length = 0, box.padding = 0.5, point.padding = 0, size=3, max.overlaps = Inf) +
-      geom_hline(yintercept = 0, linetype = 2)
+  if(arrow_labels == TRUE){
+    plot <- plot + 
+      geom_segment(aes(y = ymax*0.25, yend = ymax*0.95, x= xmax*0.88, xend= xmax * 0.88), arrow=arrow(length=unit(0.3,"cm"))) + geom_segment(aes(y = -ymax*0.25, yend = -ymax*0.95, x= xmax*0.88, xend= xmax*0.88),arrow=arrow(length=unit(0.3,"cm"))) +
+      annotate("text", y = ymax*0.6, x = xmax*0.93, label = paste0("Up in ",numerator), size = 3) + annotate("text", y = -ymax*0.6, x = xmax*0.93, label = paste0("Up in ",denomenator), size = 3)
   }
+  return(plot)
+}
 
 
-volcano_plot <- function(deseq_res, title = NULL, subtitle = NULL, gene_labels = NULL, distinct_labels = TRUE, ymax = 16.5, xmax = 3, xpos = 0.5, numerator = NULL, denomenator = NULL, arrow_labels = TRUE, dpi = 300, significance_threshold = "padj"){
+volcano_plot <- function(deseq_res, title = NULL, subtitle = NULL, gene_labels = NULL, distinct_labels = FALSE, ymax = 16.5, xmax = 3, xpos = 0.5, numerator = NULL, denomenator = NULL, arrow_labels = TRUE, dpi = 300, significance_threshold = "padj"){
   deseq_res <- deseq_res %>% mutate(sig = case_when(!!sym(significance_threshold) < 0.05 & abs(log2FoldChange) < 1 ~ "sig", !!sym(significance_threshold) < 0.05 & abs(log2FoldChange) >= 1 ~ "sig_strong", !!sym(significance_threshold) >= 0.05 ~ "non_sig"), direction = ifelse(log2FoldChange > 0, "up", "down"), class = paste(sig, direction), 
                                     log2FoldChange = case_when(log2FoldChange > xmax ~ Inf, log2FoldChange < -xmax ~ -Inf, TRUE ~ log2FoldChange), pvalue = case_when(-log10(pvalue) > ymax ~ 10^-ymax, TRUE ~ pvalue))
   de_tally <- deseq_res %>% group_by(sig, direction, class) %>% count() %>% filter(sig != "non_sig") %>% drop_na() %>%
@@ -751,9 +771,7 @@ volcano_plot <- function(deseq_res, title = NULL, subtitle = NULL, gene_labels =
   
   if(!is.null(gene_labels)){
     if(distinct_labels == TRUE){
-      plot <- plot + geom_text_repel(fontface = "italic", data = distinct(arrange(filter(deseq_res, gene_name %in% gene_labels), wt = pvalue), gene_name, .keep_all = TRUE), aes(x = log2FoldChange, y = -log10(pvalue), label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3)#
-      # geom_point(data = filter(deseq_res, gene_name %in% gene_labels), size = 0.8, colour = "black") +
-      # geom_point(aes(colour = class ), data = filter(deseq_res, gene_name %in% gene_labels), size = 0.6)
+      plot <- plot + geom_text_repel(fontface = "italic", data = distinct(arrange(filter(deseq_res, gene_name %in% gene_labels), wt = pvalue), gene_name, .keep_all = TRUE), aes(x = log2FoldChange, y = -log10(pvalue), label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3)
     } else if(distinct_labels == FALSE){
       plot <- plot + geom_text_repel(fontface = "italic", data = arrange(filter(deseq_res, gene_name %in% gene_labels), wt = pvalue), aes(x = log2FoldChange, y = -log10(pvalue), label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"),size = 2.3)
     }
@@ -795,22 +813,25 @@ volcano_plot <- function(deseq_res, title = NULL, subtitle = NULL, gene_labels =
 
 
 
-violin_plot <- function(deseq_res, color_by = "condition", continuous = "log2FoldChange", cols = c("dodgerblue2","firebrick2","forestgreen","gold2"), ylims = c(-2,2), null_value = 0,
-                        plot_stats = TRUE, stats_test = "t_test", one_sample = FALSE, stat_ypos = NULL, tip_length = 0.01, facet_variable = NULL,
+violin_plot <- function(deseq_res, color_by = "condition", continuous = "log2FoldChange", cols = c("dodgerblue2","firebrick2","forestgreen","gold2"), ylims = c(-2,2), null_value = NULL,
+                        plot_stats = TRUE, stats_test = "t_test", one_sample = FALSE, stat_ypos = NULL, tip_length = 0.01, facet_variable = NULL, violin_adjust = 1, 
                         ylabel = NULL, xlabel = "", title = NULL, subtitle = NULL, arrow_labels = TRUE, arrow_label_x = 0.94, numerator = NULL, denomenator = NULL, dpi = 300){
   data <- deseq_res %>% dplyr::select(group = all_of(color_by), lfc = all_of(continuous))
   plot <- ggplot(data, aes(x = group, y = lfc, colour = group)) +
-    ggrastr::rasterise(geom_violin(), dpi = {{dpi}}) + 
+    ggrastr::rasterise(geom_violin(adjust = violin_adjust), dpi = {{dpi}}) + 
     ggrastr::rasterise(geom_sina(size = 0.5), dpi = {{dpi}}) + 
-    ggrastr::rasterise(geom_boxplot(aes(fill = group), colour = "black", width=0.2, outlier.shape = NA), dpi = dpi) + 
-    geom_hline(yintercept = {{ null_value }}, linetype = 2, size = 1) +
+    ggrastr::rasterise(geom_boxplot(aes(fill = group), colour = "black", width=0.2, alpha = 0.5, outlier.shape = NA), dpi = dpi) + 
     scale_colour_manual(values = {{ cols }}) + scale_fill_manual(values = {{ cols }}) +
     theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +#guides(colour = "none") +
-    scale_y_continuous(limits = {{ ylims }}) +
+    # scale_y_continuous(limits = {{ ylims }}) +
+    coord_cartesian(ylim = {{ ylims }}) +
     labs(y = paste0("log2 fold change (",numerator," vs ",denomenator,")"), x = xlabel, title = title, subtitle = subtitle)
-  if(is.null(facet_variable) == FALSE){
-    plot <- plot + facet_wrap(~ all_of(facet_variable))
+  if(is.null(null_value) == FALSE){
+    plot <- plot + geom_hline(yintercept = {{ null_value }}, linetype = 2, size = 1)
   }
+  # if(is.null(facet_variable) == FALSE){
+  #   plot <- plot + facet_wrap(~ all_of(facet_variable))
+  # }
   if(is.null(ylabel) == FALSE){
     plot <- plot + labs(y = ylabel)
   }
@@ -1160,9 +1181,8 @@ cleanIRFinder <- function(mutant_vs_ctrl = irfinder.res.ac_nuc_vcp_vs_ctrl, muta
 
 
 # normalise IR per gene and left_join to GE results
-summariseIRjoinGE <- function(cleanIRFinder = irfinder.ac_nuc_vcp_vs_ctrl, GE = ac_cyt_vcp_vs_ctrl.res){
+summariseIRjoinGE <- function(cleanIRFinder, GE){
   cleanIRFinder.summarised <- cleanIRFinder %>% group_by(gene_id, gene_name) %>% 
-    filter(reliable == "reliable") %>% 
     summarise(all_intron_lengths = sum(intron_length), introns = dplyr::n(), 
               IR.log2FoldChange = sum( log2FoldChange * (intron_length / all_intron_lengths)), # normalise for intron length. # IRratio.diff.norm = sum( IRratio.diff * (intron_length / all_intron_lengths)), 
               IR.stat = sum( stat * (intron_length / all_intron_lengths)),
@@ -1768,7 +1788,7 @@ scatter_plot_irfinder <-
 
 
 
-majiq_deltapsi_volcano_plot <- function(majiq.deltapsi, title = NULL, subtitle = NULL, gene_labels = NULL, distinct_labels = TRUE, effect_size = "deltapsi", significance_value = "probability_changing", ymax = 16.5, xmax = 1, xpos = 0.5, 
+majiq_deltapsi_volcano_plot <- function(majiq.deltapsi, title = NULL, subtitle = NULL, junction_labels = NULL, gene_labels = NULL, distinct_labels = TRUE, effect_size = "deltapsi", significance_value = "probability_changing", ymax = 16.5, xmax = 1, xpos = 0.5, 
                                         numerator = NULL, denomenator = NULL, arrow_labels = TRUE, dpi = 300){
   
   majiq.deltapsi <- majiq.deltapsi %>% #rename(effect_size = all_of(effect_size), significance_value = all_of(significance_value), significance_threshold = all_of(significance_threshold)) %>%
@@ -1786,6 +1806,9 @@ majiq_deltapsi_volcano_plot <- function(majiq.deltapsi, title = NULL, subtitle =
     theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
     scale_x_continuous(limits = c(-xmax,xmax))
   
+  if(!is.null(junction_labels)){
+    plot <- plot + geom_text_repel(fontface = "italic", data = filter(majiq.deltapsi, lsv_junction_id %in% junction_labels, log10_test_stat < 0.05), aes(x = effect_size, y = -log10_test_stat, label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"),size = 2.3)
+  }
   if(!is.null(gene_labels)){
     if(distinct_labels == TRUE){
       plot <- plot + geom_text_repel(fontface = "italic", data = distinct(arrange(filter(majiq.deltapsi, gene_name %in% gene_labels), wt = -log10_test_stat), gene_name, .keep_all = TRUE), aes(x = effect_size, y = log10_test_stat, label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3)
@@ -1829,6 +1852,7 @@ majiq_het_volcano_plot <- function(voila.het, title = NULL, subtitle = NULL, jun
   if(!is.null(junction_labels)){
     plot <- plot + geom_text_repel(fontface = "italic", data = filter(voila.het, lsv_junction_id %in% junction_labels, significance_value < 0.05), aes(x = effect_size, y = -log10(significance_value), label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"),size = 2.3)
   }
+  
   if(!is.null(gene_labels)){
     if(distinct_labels == TRUE){
       plot <- plot + geom_text_repel(fontface = "italic", data = distinct(arrange(filter(voila.het, gene_name %in% gene_labels, significance_value < 0.05), wt = -abs(effect_size)), gene_name, .keep_all = TRUE), aes(x = effect_size, y = -log10(significance_value), label = gene_name), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3)#
@@ -1838,8 +1862,8 @@ majiq_het_volcano_plot <- function(voila.het, title = NULL, subtitle = NULL, jun
   }
   if(arrow_labels == TRUE){
     plot <- plot + 
-      geom_segment(aes(x = xmax*0.3, xend = xmax*0.9, y= ymax*0.85, yend= ymax*0.85), arrow=arrow(length=unit(0.3,"cm"))) + geom_segment(aes(x = -xmax*0.3, xend = -xmax*0.9, y= ymax*0.85, yend= ymax*0.85),arrow=arrow(length=unit(0.3,"cm"))) +
-      annotate("text", x = xmax*0.6, y = ymax*0.95, label = paste0("Up in ",numerator), size = 2.8) + annotate("text", x = -xmax*0.6, y = ymax*0.95, label = paste0("Up in ",denomenator), size = 2.8)
+      geom_segment(aes(x = xmax*0.25, xend = xmax*0.95, y= ymax*0.88, yend= ymax * 0.88), arrow=arrow(length=unit(0.3,"cm"))) + geom_segment(aes(x = -xmax*0.25, xend = -xmax*0.95, y= ymax*0.88, yend= ymax*0.88),arrow=arrow(length=unit(0.3,"cm"))) +
+      annotate("text", x = xmax*0.6, y = ymax*0.93, label = paste0("Up in ",numerator), size = 3) + annotate("text", x = -xmax*0.6, y = ymax*0.93, label = paste0("Up in ",denomenator), size = 3)
   }
   return(plot)
 }
@@ -2950,6 +2974,7 @@ DEP.analysis <- function(protein_groups = proteinGroups_vcp_vs_ctrl, experimenta
 library(conflicted) # for package conflicts
 conflict_prefer("select", "dplyr") # let dplyr::select win package conflict. can also do: select <- dplyr::select
 conflict_prefer("filter", "dplyr")
+conflict_prefer("mutate", "dplyr")
 conflict_prefer("count", "dplyr")
 conflict_prefer("n", "dplyr")
 conflict_prefer("rename", "dplyr")
@@ -2969,4 +2994,4 @@ conflict_prefer("make_clean_names", "janitor")
 conflict_prefer("problems", "readr")
 conflict_prefer("melt", "reshape2")
 conflict_prefer("set", "dendextend")
-
+conflict_prefer("fisher.test", "stats")
