@@ -8,7 +8,7 @@ Oliver Ziff 2022
 
 This page contains scripts to analyse the data and reproduce the figures from the manuscript.
 
-<img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_meta_pipeline.png" height="400">
+<img src="https://ojziff.github.io/ipsn_als_meta/figures/ipsn_meta_pipeline.png" height="400">
 
 ## Rmarkdown workbooks
 
