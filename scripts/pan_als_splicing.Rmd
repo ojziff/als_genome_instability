@@ -1,0 +1,95 @@
+---
+title: "Pan-ALS vs control differential splicing"
+author: |
+  | Dr Oliver Ziff
+  | The Francis Crick Institute
+  | Institute of Neurology
+  | University College London, UK
+date: "`r Sys.Date()`"
+output: 
+ rmarkdown::html_document:
+   theme: spacelab
+   highlight: haddock
+   code_folding: hide
+   toc: true
+   toc_float: true
+   smooth_scroll: true
+   number_sections: false
+   self_contained: true  
+---
+
+
+```{r setup, include=FALSE}
+library(Cairo)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
+library(here)
+proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
+source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+
+als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
+pan_als.voila_modulizer <- read_voila_modulizer(here(proj_path,"splicing/majiq_polyA/modulize/pan_als"), skip_rows = 9)
+```
+
+
+# Fig 4 Splicing pan ALS
+
+## Volcano
+
+```{r}
+majiq.als_vs_ctrl.RBP.junction_labels <- als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c("YTHDC2", "THOC1", "PRR3", "STAU2", "PTBP3", "SREK1", "POLDIP3")) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.ALS.junction_labels <- als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes)) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.DDR.junction_labels <- als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% p53.DDR.repair_gene_set) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.extra_labels <- als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c("METTL22","LINC00665")) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.volcano <- majiq_het_volcano_plot(als_ctrl.voila, "Alternative splicing: pan ALS", numerator = "ALS", denomenator = "CTRL", subtitle = "polyA: 43 CTRL vs 48 ALS", ymax = 5, xmax = 0.32, dpi = 300, junction_labels = c(majiq.als_vs_ctrl.RBP.junction_labels, majiq.als_vs_ctrl.ALS.junction_labels, majiq.als_vs_ctrl.DDR.junction_labels, majiq.als_vs_ctrl.extra_labels))
+majiq.als_vs_ctrl.volcano
+```
+
+## Functional enrichment terms
+
+```{r}
+als_ctrl.voila.gost = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
+als_ctrl.voila.gost_filt <- als_ctrl.voila.gost$result %>% filter(!str_detect(source, "HPA|TF|CORUM")) %>% arrange( -log10(p_value) ) %>% mutate(query = "1")
+majiq_als_go_list = c(
+"Hedgehog signaling pathway",
+"regulation of nervous system development",
+"positive regulation of synapse maturation",
+"protein binding")
+als_ctrl.voila.gost_filt.terms <- als_ctrl.voila.gost_filt %>% filter(term_name %in% majiq_als_go_list)
+als_ctrl.voila.gost_filt.terms$term_name = gsub("positive regulation of |regulation of ", "", als_ctrl.voila.gost_filt.terms$term_name) 
+als_ctrl.voila.gost_filt.terms.curated <- curated_profiles(als_ctrl.voila.gost_filt.terms, cols = c("forestgreen")) + labs(title = "Splicing functional enrichment") + theme(plot.title=element_text(size=8), strip.text.y.right = element_blank())
+als_ctrl.voila.gost_filt.terms.curated
+```
+
+## Modulizer
+
+Pie chart of differential event splicing types 
+
+```{r}
+modulizer_simplfied.sig.summary = pan_als.voila_modulizer %>% filter(abs(als_ctrl_het_median_dpsi) > 0.1, als_ctrl_het_tnom < 0.05) %>% count(modulizer_simplified) %>% mutate(modulizer_simplified = gsub("_"," ",modulizer_simplified), modulizer_simplified = fct_reorder(modulizer_simplified, n, .desc = TRUE)) %>% arrange(desc(modulizer_simplified)) %>% 
+  mutate(pct = n/sum(n) *100, pct.label = case_when(pct > 8 ~ paste(as.character(n),"\n", as.character(round(pct,1)),"%"), TRUE ~ ""), ypos = cumsum(pct) - 0.5*pct) #%>% print
+modulizer_simplfied.sig.summary %>% print
+pan_als.voila_modulizer.sig.pie = ggplot(modulizer_simplfied.sig.summary, aes(x = "", y = pct, fill = fct_reorder(modulizer_simplified, n, .desc = TRUE))) + geom_bar(width = 1, stat = "identity", color="white") + coord_polar("y", start=0) + 
+  geom_text(aes(x = 1.2, y = ypos, label = pct.label), color = "black", size=2.5) + scale_fill_brewer(palette="Set1") + 
+  theme_oz() + theme_void() + theme(legend.title=element_blank(), legend.position = "right", legend.text=element_text(size=7), legend.spacing.y = unit(1, 'mm'), legend.spacing.x = unit(1, 'mm'), legend.key.height = unit(0.4, 'cm'), legend.key.width = unit(0.3, 'cm')) + guides(fill=guide_legend(ncol=1))
+pan_als.voila_modulizer.sig.pie
+```
+
+## Voila view
+
+Imported violins from voila view
+
+```{r}
+polyA_majiq_violins_merged.png = magick::image_read(here(proj_path,"splicing/majiq/figures/polyA_majiq_violins_merged.png"))
+polyA_majiq_violins_merged.gg = ggdraw() + draw_image(polyA_majiq_violins_merged.png)
+polyA_majiq_violins_merged.gg
+```
+
+# Table S7 MAJIQ panALS datasets
+
+```{r}
+# als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
+als_ctrl.voila.sig = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% select(-contains("percentile"),-contains("changing"),-ucsc_lsv_link) %>% arrange(-abs(deltapsi))
+kbl(als_ctrl.voila.sig) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```

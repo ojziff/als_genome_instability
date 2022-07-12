@@ -20,15 +20,11 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="Cairo_png", dpi=72, fig.height = 8, fig.width = 10)
+library(Cairo)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
 library(here)
 proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
 load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
-camp_path = here("/camp/lab/luscomben/home/users/ziffo")
-proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
-script_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta")
-shared_path = here("/camp/lab/luscomben/home/users/ziffo/proj-luscombn-patani/working")
-collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
 
 ipsc_mn_sporadic_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.res.rds"))
@@ -44,55 +40,55 @@ ipsc_mn_tardbp_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_
 
 Compare sporadic, C9orf72, SOD1, FUS, TARDBP
 
-### Volcano
+### Volcanos
 
 TARDBP
 
 ```{r}
-ipsc_mn_mutants_bind_datasets.res = bind_rows(mutate(ipsc_mn_sporadic_datasets$res, mutation = "Sporadic"), mutate(ipsc_mn_c9orf72_datasets$res, mutation = "C9orf72"), mutate(ipsc_mn_tardbp_datasets$res, mutation = "TARDBP"), mutate(ipsc_mn_sod1_datasets$res, mutation = "SOD1"), mutate(ipsc_mn_fus_datasets$res, mutation = "FUS"))
-ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets$res, gene_name, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange),
-          select(ipsc_mn_sporadic_datasets$res, gene_name, padj.sals = padj, log2FoldChange.sals = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_fus_datasets$res, gene_name, padj.fus = padj, log2FoldChange.fus = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_tardbp_datasets$res, gene_name, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange)) %>%
-  full_join(select(ipsc_mn_sod1_datasets$res, gene_name, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange))
+ipsc_mn_mutants_bind_datasets.res = bind_rows(mutate(ipsc_mn_sporadic_datasets.res, mutation = "Sporadic"), mutate(ipsc_mn_c9orf72_datasets.res, mutation = "C9orf72"), mutate(ipsc_mn_tardbp_datasets.res, mutation = "TARDBP"), mutate(ipsc_mn_sod1_datasets.res, mutation = "SOD1"), mutate(ipsc_mn_fus_datasets.res, mutation = "FUS"))
+ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets.res, gene_name, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange),
+          select(ipsc_mn_sporadic_datasets.res, gene_name, padj.sals = padj, log2FoldChange.sals = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_fus_datasets.res, gene_name, padj.fus = padj, log2FoldChange.fus = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_tardbp_datasets.res, gene_name, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange)) %>%
+  full_join(select(ipsc_mn_sod1_datasets.res, gene_name, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange))
 ipsc_mn_mutants_join_datasets.res.labels = ipsc_mn_mutants_join_datasets.res %>% filter(c(padj.c9orf72 < 0.05 & padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05) | 
                                                                                         c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.sod1 < 0.05) | 
                                                                                         c(padj.fus < 0.05 & padj.tardbp < 0.05 & padj.c9orf72 < 0.05)) %>% pull(gene_name)
 
-ipsc_mn_tardbp_datasets.labels <- ipsc_mn_tardbp_datasets$res %>% filter(padj < 0.001, gene_name %in% c(ALS_genes,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
-ipsc_mn_tardbp_datasets.volcano <- volcano_plot(ipsc_mn_tardbp_datasets$res, "TARDBP", numerator = "TARDBP", denomenator = "CTRL", subtitle = "48 Controls vs 10 TARDBP", ymax = 15, xmax = 4.5, dpi = 300, gene_labels = c(ipsc_mn_tardbp_datasets.labels,"UPK3BL1","NPIPA8"))
+ipsc_mn_tardbp_datasets.labels <- ipsc_mn_tardbp_datasets.res %>% filter(padj < 0.001, gene_name %in% c(ALS_genes,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_tardbp_datasets.volcano <- volcano_plot(ipsc_mn_tardbp_datasets.res, "TARDBP", numerator = "TARDBP", denomenator = "CTRL", subtitle = "48 Controls vs 10 TARDBP", ymax = 15, xmax = 4.5, dpi = 300, gene_labels = c(ipsc_mn_tardbp_datasets.labels,"UPK3BL1","NPIPA8"))
 ipsc_mn_tardbp_datasets.volcano
 ```
 
 FUS
 
 ```{r}
-ipsc_mn_fus_datasets.labels <- ipsc_mn_fus_datasets$res %>% filter(padj < 0.05, gene_name %in% c(p53.DDR.repair_gene_set, ALS_genes,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
-ipsc_mn_fus_datasets.volcano <- volcano_plot(ipsc_mn_fus_datasets$res, "FUS", numerator = "FUS", denomenator = "CTRL", subtitle = "55 Controls vs 14 FUS", ymax = 15, xmax = 4, dpi = 300, gene_labels = c(ipsc_mn_fus_datasets.labels,"UPK3BL1","NPIPA8","ZNF439","HSD11B2","RNF5P1","RNU1-3"))
+ipsc_mn_fus_datasets.labels <- ipsc_mn_fus_datasets.res %>% filter(padj < 0.05, gene_name %in% c(p53.DDR.repair_gene_set, ALS_genes,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_fus_datasets.volcano <- volcano_plot(ipsc_mn_fus_datasets.res, "FUS", numerator = "FUS", denomenator = "CTRL", subtitle = "55 Controls vs 14 FUS", ymax = 15, xmax = 4, dpi = 300, gene_labels = c(ipsc_mn_fus_datasets.labels,"UPK3BL1","NPIPA8","ZNF439","HSD11B2","RNF5P1","RNU1-3"))
 ipsc_mn_fus_datasets.volcano
 ```
 
 C9orf72
 
 ```{r}
-ipsc_mn_c9orf72_datasets.labels <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.02, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
-ipsc_mn_c9orf72_datasets.volcano <- volcano_plot(ipsc_mn_c9orf72_datasets$res, "C9orf72", numerator = "C9orf72", denomenator = "CTRL", subtitle = "83 Controls vs 60 C9orf72", ymax = 9, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_c9orf72_datasets.labels, "C9orf72","UPK3BL1","NPIPA8"))
+ipsc_mn_c9orf72_datasets.labels <- ipsc_mn_c9orf72_datasets.res %>% filter(padj < 0.02, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS,"UPK3BL1","NPIPA8")) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_c9orf72_datasets.volcano <- volcano_plot(ipsc_mn_c9orf72_datasets.res, "C9orf72", numerator = "C9orf72", denomenator = "CTRL", subtitle = "83 Controls vs 60 C9orf72", ymax = 9, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_c9orf72_datasets.labels, "C9orf72","UPK3BL1","NPIPA8"))
 ipsc_mn_c9orf72_datasets.volcano
 ```
 
 SOD1
 
 ```{r}
-ipsc_mn_sod1_datasets.labels <- ipsc_mn_sod1_datasets$res %>% filter(padj < 0.05) %>% distinct(gene_name) %>% pull(gene_name)
-ipsc_mn_sod1_datasets.volcano <- volcano_plot(ipsc_mn_sod1_datasets$res, "SOD1", numerator = "SOD1", denomenator = "CTRL", subtitle = "63 Controls vs 20 SOD1", ymax = 12, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_sod1_datasets.labels))
+ipsc_mn_sod1_datasets.labels <- ipsc_mn_sod1_datasets.res %>% filter(padj < 0.05) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_sod1_datasets.volcano <- volcano_plot(ipsc_mn_sod1_datasets.res, "SOD1", numerator = "SOD1", denomenator = "CTRL", subtitle = "63 Controls vs 20 SOD1", ymax = 12, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_sod1_datasets.labels))
 ipsc_mn_sod1_datasets.volcano
 ```
 
 Sporadic
 
 ```{r}
-ipsc_mn_sporadic_datasets.labels <- ipsc_mn_sporadic_datasets$res %>% filter(padj < 0.05) %>% distinct(gene_name) %>% pull(gene_name)
-ipsc_mn_sporadic_datasets.volcano <- volcano_plot(ipsc_mn_sporadic_datasets$res, "Sporadic", numerator = "Sporadic", denomenator = "CTRL", subtitle = "56 Controls vs 208 Sporadic", ymax = 12, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_sporadic_datasets.labels))
+ipsc_mn_sporadic_datasets.labels <- ipsc_mn_sporadic_datasets.res %>% filter(padj < 0.05) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_sporadic_datasets.volcano <- volcano_plot(ipsc_mn_sporadic_datasets.res, "Sporadic", numerator = "Sporadic", denomenator = "CTRL", subtitle = "56 Controls vs 208 Sporadic", ymax = 12, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_sporadic_datasets.labels))
 ipsc_mn_sporadic_datasets.volcano
 ```
 
@@ -102,17 +98,16 @@ ipsc_mn_sporadic_datasets.volcano
 heatmap of correlation coefficients
 
 ```{r}
-ipsc_mn_mutations_stat = select(ipsc_mn_sporadic_datasets$res, gene_id, Sporadic = stat) %>% 
-  left_join(select(ipsc_mn_c9orf72_datasets$res, gene_id, C9orf72 = stat)) %>%
-  left_join(select(ipsc_mn_sod1_datasets$res, gene_id, SOD1 = stat)) %>%
-  left_join(select(ipsc_mn_fus_datasets$res, gene_id, FUS = stat)) %>%
-  left_join(select(ipsc_mn_tardbp_datasets$res, gene_id, TARDBP = stat)) %>%
+ipsc_mn_mutations_stat = select(ipsc_mn_sporadic_datasets.res, gene_id, Sporadic = stat) %>% 
+  left_join(select(ipsc_mn_c9orf72_datasets.res, gene_id, C9orf72 = stat)) %>%
+  left_join(select(ipsc_mn_sod1_datasets.res, gene_id, SOD1 = stat)) %>%
+  left_join(select(ipsc_mn_fus_datasets.res, gene_id, FUS = stat)) %>%
+  left_join(select(ipsc_mn_tardbp_datasets.res, gene_id, TARDBP = stat)) %>%
   drop_na() %>%
   column_to_rownames("gene_id")
 cormat <- round(cor(ipsc_mn_mutations_stat),2)
 head(cormat)
 melted_cormat <- melt(cormat)
-head(melted_cormat)
 get_lower_tri<-function(cormat){ # Get lower triangle of the correlation matrix
   cormat[upper.tri(cormat)] <- NA
   return(cormat)
@@ -143,19 +138,19 @@ mutation_volcanos_corr_heatmap <- ipsc_mn_tardbp_datasets.volcano + ipsc_mn_fus_
   plot_layout(ncol = 3, nrow = 2)
 # mutation_volcanos_corr_heatmap
 
-ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets$res, gene_name, gene_id, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange, stat.c9orf72 = stat),
-          select(ipsc_mn_sporadic_datasets$res, gene_name, gene_id, padj.sals = padj, log2FoldChange.sals = log2FoldChange, stat.sals = stat)) %>%
-  full_join(select(ipsc_mn_fus_datasets$res, gene_name, gene_id, padj.fus = padj, log2FoldChange.fus = log2FoldChange, stat.fus = stat)) %>%
-  full_join(select(ipsc_mn_tardbp_datasets$res, gene_name, gene_id, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange, stat.tardbp = stat)) %>%
-  full_join(select(ipsc_mn_sod1_datasets$res, gene_name, gene_id, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange, stat.sod1 = stat))
+ipsc_mn_mutants_join_datasets.res = full_join(select(ipsc_mn_c9orf72_datasets.res, gene_name, gene_id, padj.c9orf72 = padj, log2FoldChange.c9orf72 = log2FoldChange, stat.c9orf72 = stat),
+          select(ipsc_mn_sporadic_datasets.res, gene_name, gene_id, padj.sals = padj, log2FoldChange.sals = log2FoldChange, stat.sals = stat)) %>%
+  full_join(select(ipsc_mn_fus_datasets.res, gene_name, gene_id, padj.fus = padj, log2FoldChange.fus = log2FoldChange, stat.fus = stat)) %>%
+  full_join(select(ipsc_mn_tardbp_datasets.res, gene_name, gene_id, padj.tardbp = padj, log2FoldChange.tardbp = log2FoldChange, stat.tardbp = stat)) %>%
+  full_join(select(ipsc_mn_sod1_datasets.res, gene_name, gene_id, padj.sod1 = padj, log2FoldChange.sod1 = log2FoldChange, stat.sod1 = stat))
 
 ```
 
 
-## p53 PROGENy & TP53 Dorothea
+## p53 pathway & TP53 transcription factor
 
 ```{r}
-ipsc_mn_mutations_list = list("Sporadic" = select(ipsc_mn_sporadic_datasets$res,gene_name,stat), "C9orf72" = select(ipsc_mn_c9orf72_datasets$res,gene_name,stat), "TARDBP" = select(ipsc_mn_tardbp_datasets$res,gene_name,stat), "SOD1" = select(ipsc_mn_sod1_datasets$res,gene_name,stat), "FUS" = select(ipsc_mn_fus_datasets$res,gene_name,stat)) #, "VCP" = select(ipsc_mn_vcp_datasets$res,gene_name,stat)) 
+ipsc_mn_mutations_list = list("Sporadic" = select(ipsc_mn_sporadic_datasets.res,gene_name,stat), "C9orf72" = select(ipsc_mn_c9orf72_datasets.res,gene_name,stat), "TARDBP" = select(ipsc_mn_tardbp_datasets.res,gene_name,stat), "SOD1" = select(ipsc_mn_sod1_datasets.res,gene_name,stat), "FUS" = select(ipsc_mn_fus_datasets.res,gene_name,stat)) #, "VCP" = select(ipsc_mn_vcp_datasets.res,gene_name,stat)) 
 mutations <- names(ipsc_mn_mutations_list)
 ipsc_mn_mutations_list = map(ipsc_mn_mutations_list, ~{drop_na(.x)}) 
 ipsc_mn_mutations_list = map(ipsc_mn_mutations_list, ~{distinct(.x, gene_name, .keep_all = TRUE)})
@@ -195,12 +190,10 @@ ipsc_mn_mutations_list.TP53.dorothea_scores.plot
 
 # Fig S9 Gene expression overlap mutations 
 
-## Scatters
-
-Scatter correlation of mutants
+## Scatter correlation between subgroups
 
 ```{r}
-ipsc_mn_mutations_list = list("Sporadic" = ipsc_mn_sporadic_datasets$res, "C9orf72" = ipsc_mn_c9orf72_datasets$res, "TARDBP" = ipsc_mn_tardbp_datasets$res, "SOD1" = ipsc_mn_sod1_datasets$res, "FUS" = ipsc_mn_fus_datasets$res)
+ipsc_mn_mutations_list = list("Sporadic" = ipsc_mn_sporadic_datasets.res, "C9orf72" = ipsc_mn_c9orf72_datasets.res, "TARDBP" = ipsc_mn_tardbp_datasets.res, "SOD1" = ipsc_mn_sod1_datasets.res, "FUS" = ipsc_mn_fus_datasets.res)
 
 ipsc_mn_mutations_list_t_stat_plot <- 
 plot_de_correlation(model_list1 = ipsc_mn_mutations_list, model_list2 = ipsc_mn_mutations_list, mutation1 = "Sporadic", mutation2 = "C9orf72", highlight = "C9orf72")  +
@@ -222,7 +215,7 @@ ipsc_mn_mutations_list_t_stat_plot
 ## Upset plot
 
 ```{r}
-ipsc_mn_mutants_bind_datasets.res = bind_rows(mutate(ipsc_mn_sporadic_datasets$res, mutation = "Sporadic"), mutate(ipsc_mn_c9orf72_datasets$res, mutation = "C9orf72"), mutate(ipsc_mn_tardbp_datasets$res, mutation = "TARDBP"), mutate(ipsc_mn_sod1_datasets$res, mutation = "SOD1"), mutate(ipsc_mn_fus_datasets$res, mutation = "FUS"))# ,mutate(ipsc_mn_vcp_datasets$res, mutation = "VCP"))
+ipsc_mn_mutants_bind_datasets.res = bind_rows(mutate(ipsc_mn_sporadic_datasets.res, mutation = "Sporadic"), mutate(ipsc_mn_c9orf72_datasets.res, mutation = "C9orf72"), mutate(ipsc_mn_tardbp_datasets.res, mutation = "TARDBP"), mutate(ipsc_mn_sod1_datasets.res, mutation = "SOD1"), mutate(ipsc_mn_fus_datasets.res, mutation = "FUS"))# ,mutate(ipsc_mn_vcp_datasets.res, mutation = "VCP"))
 ipsc_mn_mutants_bind_datasets.res.upset = ipsc_mn_mutants_bind_datasets.res %>% filter(padj < 0.05) %>% select(mutation, gene_name) %>% group_by(gene_name) %>% summarise(mutations = list(mutation)) %>%
   ggplot(aes(x = mutations)) + geom_bar() +
     geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.2, hjust = 0.5, size = 3, angle = 0) +
@@ -240,7 +233,7 @@ C9orf72
 
 ```{r}
 # c9orf72
-ipsc_mn_c9orf72_datasets.dge_genes <- ipsc_mn_c9orf72_datasets$res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+ipsc_mn_c9orf72_datasets.dge_genes <- ipsc_mn_c9orf72_datasets.res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
 ipsc_mn_c9orf72_datasets.dge_gprofiles_filt <- ipsc_mn_c9orf72_datasets.dge_genes$result %>% filter(!str_detect(source, "TF|CORUM")) %>% arrange(-log10(p_value)) %>%
   mutate(query = case_when(query == "query_1" ~ " C9orf72 Down ", query == "query_2" ~ " C9orf72 Up "), term_name = as.factor(term_name))
 ipsc_mn_c9orf72_datasets.dge_gprofiles_down <- ipsc_mn_c9orf72_datasets.dge_gprofiles_filt %>% filter(query == " C9orf72 Down ")
@@ -270,7 +263,7 @@ FUS
 
 ```{r}
 # fus
-ipsc_mn_fus_datasets.dge_genes <- ipsc_mn_fus_datasets$res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+ipsc_mn_fus_datasets.dge_genes <- ipsc_mn_fus_datasets.res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
 ipsc_mn_fus_datasets.dge_gprofiles_filt <- ipsc_mn_fus_datasets.dge_genes$result %>% filter(!str_detect(source, "TF|CORUM|HPA|MIRNA")) %>% arrange(-log10(p_value)) %>%
   mutate(query = case_when(query == "query_1" ~ " FUS Down ", query == "query_2" ~ " FUS Up "), term_name = as.factor(term_name))
 ipsc_mn_fus_datasets.dge_gprofiles_down <- ipsc_mn_fus_datasets.dge_gprofiles_filt %>% filter(query == " FUS Down ")
@@ -301,7 +294,7 @@ TARDBP
 
 ```{r}
 # tardbp
-ipsc_mn_tardbp_datasets.dge_genes <- ipsc_mn_tardbp_datasets$res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+ipsc_mn_tardbp_datasets.dge_genes <- ipsc_mn_tardbp_datasets.res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
 ipsc_mn_tardbp_datasets.dge_gprofiles_filt <- ipsc_mn_tardbp_datasets.dge_genes$result %>% filter(!str_detect(source, "TF|CORUM|HPA|MIRNA")) %>% arrange(-log10(p_value)) %>%
   mutate(query = case_when(query == "query_1" ~ " TARDBP Down ", query == "query_2" ~ " TARDBP Up "), term_name = as.factor(term_name))
 ipsc_mn_tardbp_datasets.dge_gprofiles_down <- ipsc_mn_tardbp_datasets.dge_gprofiles_filt %>% filter(query == " TARDBP Down ")
@@ -315,7 +308,6 @@ down_list <- c(
 "cell division",
 "protein binding")
 ipsc_mn_tardbp_datasets.dge_gprofiles_filt_down <- ipsc_mn_tardbp_datasets.dge_gprofiles_filt %>% filter(query == " TARDBP Down ") %>% filter(term_name %in% down_list)
-paste('"',unique(ipsc_mn_tardbp_datasets.dge_gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
 up_list <- c(
 "glutamatergic synapse",
 "synaptic signaling",
@@ -335,12 +327,12 @@ ipsc_mn_tardbp_datasets.go_curated
 ```
 
 
-# Fig S10 DoRoTHEA & PROGENy
+# Fig S10 Pathways & Transcription factors
 
 Signalling pathways
 
 ```{r}
-ipsc_mn_mutations_list = list("Sporadic" = select(ipsc_mn_sporadic_datasets$res,gene_name,stat), "C9orf72" = select(ipsc_mn_c9orf72_datasets$res,gene_name,stat), "TARDBP" = select(ipsc_mn_tardbp_datasets$res,gene_name,stat), "SOD1" = select(ipsc_mn_sod1_datasets$res,gene_name,stat), "FUS" = select(ipsc_mn_fus_datasets$res,gene_name,stat))
+ipsc_mn_mutations_list = list("Sporadic" = select(ipsc_mn_sporadic_datasets.res,gene_name,stat), "C9orf72" = select(ipsc_mn_c9orf72_datasets.res,gene_name,stat), "TARDBP" = select(ipsc_mn_tardbp_datasets.res,gene_name,stat), "SOD1" = select(ipsc_mn_sod1_datasets.res,gene_name,stat), "FUS" = select(ipsc_mn_fus_datasets.res,gene_name,stat))
 mutations <- names(ipsc_mn_mutations_list)
 ipsc_mn_mutations_list = map(ipsc_mn_mutations_list, ~{drop_na(.x)}) 
 ipsc_mn_mutations_list = map(ipsc_mn_mutations_list, ~{distinct(.x, gene_name, .keep_all = TRUE)})
@@ -348,8 +340,7 @@ ipsc_mn_mutations_list = map(ipsc_mn_mutations_list, ~{tibble_to_matrix(.x, stat
 ipsc_mn_mutations_list.progeny_scores = map_df(ipsc_mn_mutations_list, ~{run_wmean(.x, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5)}, .id = "mutation") %>% filter(statistic == 'norm_wmean') %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = mutation, group2 = mutation, source = as.factor(source), source = fct_reorder(source, score))
 ipsc_mn_mutations_list.progeny_scores.plot <- ggplot(ipsc_mn_mutations_list.progeny_scores, aes(x=mutation, y = score, fill = factor(mutation, levels = c("Sporadic","C9orf72","FUS","SOD1","TARDBP")))) +
   geom_bar(stat='identity', position = "dodge2") +
-  scale_fill_npg() +    # scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) +
-  labs(title = "Signaling Pathways", x = "", y = "Normalised enrichment") +
+  scale_fill_npg() +  labs(title = "Signaling Pathways", x = "", y = "Normalised enrichment") +
   theme_oz() + theme(axis.text.x = element_text(angle = 90, size = 6), plot.title = element_text(hjust = 0.5), legend.title = element_blank(), legend.position = "top") +
   geom_hline(yintercept = 0, linetype = 3) +
   facet_grid(~source) +
@@ -386,11 +377,11 @@ ipsc_mn_mutations_merged_dorothea.contrast_acts.volcano
 
 ```{r}
 ipsc_mn_mutants_join_datasets.res = 
-  mutate(select(ipsc_mn_sporadic_datasets$res, gene_name, gene_id, padj.sporadic = padj, stat.sporadic = stat, lfc.sporadic = log2FoldChange), direction.sporadic = case_when(padj.sporadic < 0.05 & lfc.sporadic > 0 ~ "up", padj.sporadic < 0.05 & lfc.sporadic < 0 ~ "down", TRUE ~ "non-significant")) %>%
-  full_join(mutate(select(ipsc_mn_c9orf72_datasets$res, gene_name, gene_id, padj.c9orf72 = padj, stat.c9orf72 = stat, lfc.c9orf72 = log2FoldChange), direction.c9orf72 = case_when(padj.c9orf72 < 0.05 & lfc.c9orf72 > 0 ~ "up", padj.c9orf72 < 0.05 & lfc.c9orf72 < 0 ~ "down", TRUE ~ "non-significant"))) %>%
-  full_join(mutate(select(ipsc_mn_fus_datasets$res, gene_name, gene_id, padj.fus = padj, stat.fus = stat, lfc.fus = log2FoldChange), direction.fus = case_when(padj.fus < 0.05 & lfc.fus > 0 ~ "up", padj.fus < 0.05 & lfc.fus < 0 ~ "down", TRUE ~ "non-significant"))) %>%
-  full_join(mutate(select(ipsc_mn_tardbp_datasets$res, gene_name, gene_id,  padj.tardbp = padj, stat.tardbp = stat, lfc.tardbp = log2FoldChange), direction.tardbp = case_when(padj.tardbp < 0.05 & lfc.tardbp > 0 ~ "up", padj.tardbp < 0.05 & lfc.tardbp < 0 ~ "down", TRUE ~ "non-significant"))) %>%
-  full_join(mutate(select(ipsc_mn_sod1_datasets$res, gene_name, gene_id, padj.sod1 = padj, stat.sod1 = stat, lfc.sod1 = log2FoldChange), direction.sod1 = case_when(padj.sod1 < 0.05 & lfc.sod1 > 0 ~ "up", padj.sod1 < 0.05 & lfc.sod1 < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  mutate(select(ipsc_mn_sporadic_datasets.res, gene_name, gene_id, padj.sporadic = padj, stat.sporadic = stat, lfc.sporadic = log2FoldChange), direction.sporadic = case_when(padj.sporadic < 0.05 & lfc.sporadic > 0 ~ "up", padj.sporadic < 0.05 & lfc.sporadic < 0 ~ "down", TRUE ~ "non-significant")) %>%
+  full_join(mutate(select(ipsc_mn_c9orf72_datasets.res, gene_name, gene_id, padj.c9orf72 = padj, stat.c9orf72 = stat, lfc.c9orf72 = log2FoldChange), direction.c9orf72 = case_when(padj.c9orf72 < 0.05 & lfc.c9orf72 > 0 ~ "up", padj.c9orf72 < 0.05 & lfc.c9orf72 < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_fus_datasets.res, gene_name, gene_id, padj.fus = padj, stat.fus = stat, lfc.fus = log2FoldChange), direction.fus = case_when(padj.fus < 0.05 & lfc.fus > 0 ~ "up", padj.fus < 0.05 & lfc.fus < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_tardbp_datasets.res, gene_name, gene_id,  padj.tardbp = padj, stat.tardbp = stat, lfc.tardbp = log2FoldChange), direction.tardbp = case_when(padj.tardbp < 0.05 & lfc.tardbp > 0 ~ "up", padj.tardbp < 0.05 & lfc.tardbp < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  full_join(mutate(select(ipsc_mn_sod1_datasets.res, gene_name, gene_id, padj.sod1 = padj, stat.sod1 = stat, lfc.sod1 = log2FoldChange), direction.sod1 = case_when(padj.sod1 < 0.05 & lfc.sod1 > 0 ~ "up", padj.sod1 < 0.05 & lfc.sod1 < 0 ~ "down", TRUE ~ "non-significant"))) %>%
   # arrange() %>%
   select(gene_name, gene_id, everything()) %>%
   filter(padj.sporadic < 0.05 | padj.c9orf72 < 0.05 | padj.fus < 0.05 | padj.tardbp < 0.05 | padj.sod1 < 0.05)

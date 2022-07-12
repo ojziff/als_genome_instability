@@ -25,11 +25,6 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoP
 library(here)
 proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
 load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
-camp_path = here("/camp/lab/luscomben/home/users/ziffo")
-proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
-script_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta")
-shared_path = here("/camp/lab/luscomben/home/users/ziffo/proj-luscombn-patani/working")
-collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
 
 ipsc_mn_als_datasets_with_lee.vsd = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets_with_lee.vsd.rds"))

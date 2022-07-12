@@ -1,0 +1,240 @@
+---
+title: "Postmortem spinal cord ALS vs control differential expression"
+author: |
+  | Dr Oliver Ziff
+  | The Francis Crick Institute
+  | Institute of Neurology
+  | University College London, UK
+date: "`r Sys.Date()`"
+output: 
+ rmarkdown::html_document:
+   theme: spacelab
+   highlight: haddock
+   code_folding: hide
+   toc: true
+   toc_float: true
+   smooth_scroll: true
+   number_sections: false
+   self_contained: true  
+---
+
+
+```{r setup, include=FALSE}
+library(Cairo)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
+library(here)
+proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+shared_path = here("/camp/project/proj-luscombn-patani/working")
+load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
+source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+
+nygc_postmortem_spinal_cord.als_vs_ctrl.res = readRDS(here(proj_path,"expression/deseq2/nygc_postmortem_spinal_cord.als_vs_ctrl.res.rds"))
+nygc_postmortem_spinal_cord.c9orf72_vs_ctrl.res = readRDS(here(proj_path,"expression/deseq2/nygc_postmortem_spinal_cord.c9orf72_vs_ctrl.res.rds"))
+nygc_postmortem_spinal_cord.fus_vs_ctrl.res = readRDS(here(proj_path,"expression/deseq2/nygc_postmortem_spinal_cord.fus_vs_ctrl.res.rds"))
+nygc_postmortem_spinal_cord.sod1_vs_ctrl.res = readRDS(here(proj_path,"expression/deseq2/nygc_postmortem_spinal_cord.sod1_vs_ctrl.res.rds"))
+nygc_postmortem_spinal_cord.sporadic_vs_ctrl.res = readRDS(here(proj_path,"expression/deseq2/nygc_postmortem_spinal_cord.sporadic_vs_ctrl.res.rds"))
+ipsc_mn_als_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.res.rds"))
+ipsc_mn_sporadic_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.res.rds"))
+ipsc_mn_fus_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_fus_datasets.res.rds"))
+ipsc_mn_sod1_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sod1_datasets.res.rds"))
+ipsc_mn_c9orf72_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_c9orf72_datasets.res.rds"))
+ipsc_mn_tardbp_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_tardbp_datasets.res.rds"))
+```
+
+# Fig S11 Postmortem 
+
+Import NYGC filtered and processed counts for spinal cord samples only from Humphrey et al [Zenodo repro](https://zenodo.org/record/6385747#.Yod3Y5PMJqs)
+
+```{r}
+nygc_cervical_cord_metadata = read_tsv(here(shared_path,"nygc-als-consortium/counts/spinal_cord_jack_humphrey/Cervical_Spinal_Cord/Cervical_Spinal_Cord_metadata.tsv")) # 174
+nygc_thoracic_cord_metadata = read_tsv(here(shared_path,"nygc-als-consortium/counts/spinal_cord_jack_humphrey/Thoracic_Spinal_Cord/Thoracic_Spinal_Cord_metadata.tsv")) # 52
+nygc_lumbar_cord_metadata = read_tsv(here(shared_path,"nygc-als-consortium/counts/spinal_cord_jack_humphrey/Lumbar_Spinal_Cord/Lumbar_Spinal_Cord_metadata.tsv")) # 154
+nygc_spinal_cord_metadata.bind = bind_rows(nygc_cervical_cord_metadata, nygc_thoracic_cord_metadata, nygc_lumbar_cord_metadata) %>% # 380
+  mutate(condition = case_when(disease == "Control" ~ "ctrl", grepl("ALS",disease) ~ "als"), condition = factor(condition, levels = c("ctrl","als")), library_prep = as.factor(library_prep),
+         gender = tolower(sex), mutation = tolower(mutations), mutation = case_when(condition == "als" & mutation == "none" ~ "sporadic", TRUE ~ mutation))
+nygc_spinal_cord_metadata = nygc_spinal_cord_metadata.bind %>% mutate(tissue = factor(tissue, levels = c("Cervical_Spinal_Cord", "Thoracic_Spinal_Cord", "Lumbar_Spinal_Cord")), sample = rna_id) %>% arrange(tissue) %>% distinct(dna_id, .keep_all = TRUE) %>% column_to_rownames(var = "rna_id") # 203 / 380
+nygc_spinal_cord_metadata.sporadic = nygc_spinal_cord_metadata %>% filter(mutation %in% c("sporadic","none"))
+nygc_spinal_cord_metadata.c9orf72 = nygc_spinal_cord_metadata %>% filter(mutation %in% c("c9orf72","none"))
+nygc_spinal_cord_metadata.sod1 = nygc_spinal_cord_metadata %>% filter(mutation %in% c("sod1","none"))
+nygc_spinal_cord_metadata.fus = nygc_spinal_cord_metadata %>% filter(mutation %in% c("fus","none"))
+```
+
+## Volcano
+
+```{r}
+nygc_postmortem_spinal_cord.als_vs_ctrl.als.labels <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(gene_name %in% ALS_genes) %>% top_n(n=5,wt = abs(stat)) %>% pull(gene_name)
+nygc_postmortem_spinal_cord.als_vs_ctrl.p53.labels <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(gene_name %in% p53.DDR.repair_gene_set) %>% top_n(n=5,wt = abs(stat)) %>% pull(gene_name)
+ipsc_mn_als_datasets.res.dge.up <- ipsc_mn_als_datasets.res %>% filter(padj < 0.05, log2FoldChange > 0) %>% pull(gene_name)
+ipsc_mn_als_datasets.res.dge.down <- ipsc_mn_als_datasets.res %>% filter(padj < 0.05, log2FoldChange < 0) %>% pull(gene_name)
+nygc_postmortem_spinal_cord.als_vs_ctrl.ipsn.up.labels <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(padj<0.05,stat>0,gene_name %in% ipsc_mn_als_datasets.res.dge.up) %>% pull(gene_name)
+nygc_postmortem_spinal_cord.als_vs_ctrl.ipsn.down.labels <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(padj<0.05,stat<0,gene_name %in% ipsc_mn_als_datasets.res.dge.down) %>% pull(gene_name)
+nygc_postmortem_spinal_cord.als_vs_ctrl.labels <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(!grepl("^AC|^AL", gene_name)) %>% top_n(n=10,wt = abs(stat)) %>% pull(gene_name)
+nygc_postmortem_spinal_cord.als_vs_ctrl.volcano <- volcano_plot(nygc_postmortem_spinal_cord.als_vs_ctrl.res, numerator = "ALS", denomenator = "CTRL",
+               title = "Postmortem spinal cord", subtitle = "80 Controls vs 300 ALS", ymax = 60, xmax = 3, dpi = 300,
+               gene_labels = c(nygc_postmortem_spinal_cord.als_vs_ctrl.als.labels, nygc_postmortem_spinal_cord.als_vs_ctrl.ipsn.up.labels, nygc_postmortem_spinal_cord.als_vs_ctrl.ipsn.down.labels, nygc_postmortem_spinal_cord.als_vs_ctrl.labels, nygc_postmortem_spinal_cord.als_vs_ctrl.p53.labels))
+nygc_postmortem_spinal_cord.als_vs_ctrl.volcano
+
+```
+
+## Functional enrichment terms
+
+```{r}
+nygc_postmortem_spinal_cord.als_vs_ctrl.gost <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles <- nygc_postmortem_spinal_cord.als_vs_ctrl.gost$result %>% filter(!str_detect(source, "TF|CORUM|HPA|MIRNA")) %>% arrange( -log10(p_value) ) %>% mutate(query = case_when(query == "query_1" ~ " ALS Down ", query == "query_2" ~ " ALS Up "), term_name = as.factor(term_name))
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_down <- nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles %>% filter(query == " ALS Down ")
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_up <- nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles %>% filter(query == " ALS Up ")
+down_list <- c(
+"transcription by RNA polymerase II",
+"regulation of RNA metabolic process",
+"cytoskeleton organization",
+"axon",
+"neuron development",
+"synapse",
+"neuron projection",
+"neurogenesis")
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_down <- nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles %>% filter(query == " ALS Down ")  %>% filter(term_name %in% down_list)
+up_list <- c(
+"cellular response to DNA damage stimulus",
+"programmed cell death",
+"endoplasmic reticulum",
+"lysosome",
+"protein localization",
+"translation",
+"response to stress",
+"mitochondrion",
+"protein metabolic process",
+"programmed cell death")
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_up <- nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles %>% filter(query == " ALS Up ")  %>% filter(term_name %in% up_list)
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_combined <- bind_rows(nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_down, nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_up) %>% mutate(query = factor(query, levels = c(" ALS Up ", " ALS Down ")))
+nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_combined = nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_combined %>% mutate(term_name = gsub("regulation of ", "", term_name), term_name = gsub("and","&",term_name), term_name = gsub("cellular ","",term_name))
+nygc_postmortem_spinal_cord.als_vs_ctrl.go_curated <- curated_profiles(gprofiles = nygc_postmortem_spinal_cord.als_vs_ctrl.gprofiles_filt_combined)
+nygc_postmortem_spinal_cord.als_vs_ctrl.go_curated
+
+```
+
+
+## Pathways and transcription factors
+
+```{r}
+net_progeny <- get_progeny(organism = 'human', top = 100)
+nygc_postmortem_spinal_cord.als_vs_ctrl.res.matrix <- nygc_postmortem_spinal_cord.als_vs_ctrl.res %>% select(gene_name, stat) %>%  drop_na(stat) %>% distinct(gene_name, .keep_all = TRUE) %>% tibble_to_matrix(stat, row_names = "gene_name")
+nygc_postmortem_spinal_cord.als_vs_ctrl_progeny.contrast_acts <- run_wmean(mat=nygc_postmortem_spinal_cord.als_vs_ctrl.res.matrix, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = source, group2 = source)
+nygc_postmortem_spinal_cord.als_vs_ctrl_progeny.pathwayActivity <- ggplot(nygc_postmortem_spinal_cord.als_vs_ctrl_progeny.contrast_acts, aes(x=reorder(source, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+    scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + 
+    theme_oz() + theme(axis.text.x = element_text(angle = 90), legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "Signaling Pathways", x = "", y = "Normalised enrichment ALS vs CTRL") +
+    stat_pvalue_manual(nygc_postmortem_spinal_cord.als_vs_ctrl_progeny.contrast_acts, label = "p.signif", y.position = 6, xmin = "source", xmax = NULL, size = 4, hide.ns = TRUE) 
+nygc_postmortem_spinal_cord.als_vs_ctrl_progeny.pathwayActivity
+
+net_dorothea <- get_dorothea(organism='human', levels=c('A', 'B', 'C'))
+nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts <- run_wmean(mat=nygc_postmortem_spinal_cord.als_vs_ctrl.res.matrix, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 10000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% 
+  mutate(sig = case_when(p_value < 0.06 & abs(score) < 4 ~ "sig", p_value < 0.06 & abs(score) >= 4 ~ "sig_strong", p_value > 0.05 ~ "non_sig"), direction = ifelse(score > 0, "up", "down"), class = paste(sig, direction))
+nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.labels.up = nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts %>% top_n(score, n = 3) %>% pull(source)
+nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.labels.down = nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts %>% top_n(-score, n = 3) %>% pull(source)
+
+# Volcano of TFs score vs p_value
+nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.volcano = ggplot(nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts, aes(x = score, y = -log10(p_value))) + geom_point(aes(colour = class)) +
+    scale_colour_manual(values = c("non_sig up" = "gray", "non_sig down" = "gray",  "sig up" = "#F36F6F", "sig_strong up" = "#EB4445", "sig down" = "#A6CEE3", "sig_strong down" = "#79B1D3")) +
+  labs(y = expression(-log[10]~P~value), x = "Normalised enrichment ALS vs CTRL", title = "Transcription Factors") +
+    guides(colour = "none") +
+    theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+  # scale_y_continuous(expand = c(0,0), limits = c(0,ymax)) + scale_x_continuous(limits = c(-xmax,xmax))
+  geom_text_repel(fontface = "italic", data = filter(nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts, source %in% c(nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.labels.up, nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.labels.down, "TP53")), aes(label = source), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3) +  
+  geom_vline(xintercept = 0, linetype = 'dotted')
+nygc_postmortem_spinal_cord.als_vs_ctrl_dorothea.contrast_acts.volcano
+
+```
+
+## Compare postmortem with iPSNs
+
+```{r}
+postmortem_ipsn.als_vs_ctrl = select(nygc_postmortem_spinal_cord.als_vs_ctrl.res, gene_name, gene_id, nygc.stat = stat, nygc.padj = padj) %>% left_join(select(ipsc_mn_als_datasets.res, gene_name, gene_id, ipsn.stat = stat, ipsn.padj = padj))
+postmortem_ipsn.als_vs_ctrl.overlapping = postmortem_ipsn.als_vs_ctrl %>% filter(nygc.padj < 0.05, ipsn.padj < 0.05, (nygc.stat > 0 & ipsn.stat > 0) | (nygc.stat < 0 & ipsn.stat < 0)) %>% top_n(n = 20, wt = abs(nygc.stat)) %>% pull(gene_name) # 50
+postmortem_ipsn_de_list = list("Postmortem spinal cord: ALS vs CTRL" = nygc_postmortem_spinal_cord.als_vs_ctrl.res, "iPSN: ALS vs CTRL" = ipsc_mn_als_datasets.res)
+postmortem_ipsn.als_vs_ctrl.scatter = plot_de_correlation(model_list1 = postmortem_ipsn_de_list, model_list2 = postmortem_ipsn_de_list, mutation1 = "iPSN: ALS vs CTRL", mutation2 = "Postmortem spinal cord: ALS vs CTRL", highlight = c(postmortem_ipsn.als_vs_ctrl.overlapping, "CFAP410"))
+postmortem_ipsn.als_vs_ctrl.scatter
+```
+
+
+## Compare mutations in postmortem
+
+```{r}
+nygc_postmortem_spinal_cord_mn_mutations_list = list("Sporadic" = select(nygc_postmortem_spinal_cord.sporadic_vs_ctrl.res,gene_name,stat), "C9orf72" = select(nygc_postmortem_spinal_cord.c9orf72_vs_ctrl.res,gene_name,stat), "SOD1" = select(nygc_postmortem_spinal_cord.sod1_vs_ctrl.res,gene_name,stat), "FUS" = select(nygc_postmortem_spinal_cord.fus_vs_ctrl.res,gene_name,stat)) #"TARDBP" = select(nygc_postmortem_spinal_cord.tardbp_vs_ctrl.res,gene_name,stat), 
+mutations <- names(nygc_postmortem_spinal_cord_mn_mutations_list)
+nygc_postmortem_spinal_cord_mn_mutations_list = map(nygc_postmortem_spinal_cord_mn_mutations_list, ~{drop_na(.x)}) 
+nygc_postmortem_spinal_cord_mn_mutations_list = map(nygc_postmortem_spinal_cord_mn_mutations_list, ~{distinct(.x, gene_name, .keep_all = TRUE)})
+nygc_postmortem_spinal_cord_mn_mutations_list = map(nygc_postmortem_spinal_cord_mn_mutations_list, ~{tibble_to_matrix(.x, stat, row_names = "gene_name")})
+```
+
+### p53 pathway
+
+```{r}
+nygc_postmortem_spinal_cord_mn_mutations_list.progeny_scores = map_df(nygc_postmortem_spinal_cord_mn_mutations_list, ~{run_wmean(.x, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5)}, .id = "mutation") %>% filter(statistic == 'norm_wmean')
+nygc_postmortem_spinal_cord_mn_mutations_list.p53.progeny_scores = nygc_postmortem_spinal_cord_mn_mutations_list.progeny_scores %>% filter(source == "p53") %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = mutation, group2 = mutation)
+nygc_postmortem_spinal_cord_mn_mutations_list.p53.progeny_scores.plot <- ggplot(nygc_postmortem_spinal_cord_mn_mutations_list.p53.progeny_scores, aes(x=reorder(mutation, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+  scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + #scale_fill_npg() +
+  theme_oz() + theme(axis.text.x = element_text(angle = 0), plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = 3) +
+  labs(title = "p53 pathway activity", x = "", y = "Normalised enrichment") + #ylim(c(-12,12)) +
+  stat_pvalue_manual(nygc_postmortem_spinal_cord_mn_mutations_list.p53.progeny_scores, label = "p.signif", y.position = 6, xmin = "mutation", xmax = NULL, size = 6, hide.ns = TRUE) 
+nygc_postmortem_spinal_cord_mn_mutations_list.p53.progeny_scores.plot
+```
+
+### TP53 transcription factor
+
+```{r}
+nygc_postmortem_spinal_cord_mn_mutations_list.dorothea_scores = map_df(nygc_postmortem_spinal_cord_mn_mutations_list, ~{run_wmean(.x, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 1000, minsize = 5)}, .id = "mutation") %>% filter(statistic == 'norm_wmean')
+nygc_postmortem_spinal_cord_mn_mutations_list.TP53.dorothea_scores = nygc_postmortem_spinal_cord_mn_mutations_list.dorothea_scores %>% filter(source == "TP53") %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = mutation, group2 = mutation)
+nygc_postmortem_spinal_cord_mn_mutations_list.TP53.dorothea_scores.plot <- ggplot(nygc_postmortem_spinal_cord_mn_mutations_list.TP53.dorothea_scores, aes(x=reorder(mutation, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+  scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + #scale_fill_npg() +  
+  theme_oz() + theme(axis.text.x = element_text(angle = 0), plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = 3) +
+  labs(title = "TP53 Transcription Factor activity", x = "", y = "Normalised enrichment") + #ylim(c(-6,6)) +
+  stat_pvalue_manual(nygc_postmortem_spinal_cord_mn_mutations_list.TP53.dorothea_scores, label = "p.signif", y.position = 5, xmin = "mutation", xmax = NULL, size =6, hide.ns = TRUE) 
+nygc_postmortem_spinal_cord_mn_mutations_list.TP53.dorothea_scores.plot
+
+```
+
+# Table S6 postmortem & ipsn overlap DGE
+
+Overlapping differentially expressed genes in ALS vs CTRL in both postmortem spinal cord and iPSNs
+
+```{r}
+postmortem_ipsc_overlap.res = 
+  mutate(select(nygc_postmortem_spinal_cord.als_vs_ctrl.res, gene_name, gene_id, padj.postmortem = padj, stat.postmortem = stat, lfc.postmortem = log2FoldChange), direction.postmortem = case_when(padj.postmortem < 0.05 & lfc.postmortem > 0 ~ "up", padj.postmortem < 0.05 & lfc.postmortem < 0 ~ "down", TRUE ~ "non-significant")) %>%
+  full_join(mutate(select(ipsc_mn_als_datasets.res, gene_name, gene_id, padj.ipsn = padj, stat.ipsn = stat, lfc.ipsn = log2FoldChange), direction.ipsn = case_when(padj.ipsn < 0.05 & lfc.ipsn > 0 ~ "up", padj.ipsn < 0.05 & lfc.ipsn < 0 ~ "down", TRUE ~ "non-significant"))) %>%
+  select(gene_name, gene_id, everything()) %>% 
+  filter(padj.ipsn < 0.05, padj.postmortem < 0.05, ((stat.ipsn > 0 & stat.postmortem > 0) | (stat.ipsn < 0 & stat.postmortem < 0)))
+kbl(postmortem_ipsc_overlap.res) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+
+## Scatter postmortem & iPSN subgroups
+
+```{r}
+postmortem_ipsc_mn_mutations_list = list("Sporadic iPSN" = ipsc_mn_sporadic_datasets.res, "C9orf72 iPSN" = ipsc_mn_c9orf72_datasets.res, "SOD1 iPSN" = ipsc_mn_sod1_datasets.res, "FUS iPSN" = ipsc_mn_fus_datasets.res, "Sporadic postmortem" = nygc_postmortem_spinal_cord.sporadic_vs_ctrl.res, "C9orf72 postmortem" = nygc_postmortem_spinal_cord.c9orf72_vs_ctrl.res, "SOD1 postmortem" = nygc_postmortem_spinal_cord.sod1_vs_ctrl.res, "FUS postmortem" = nygc_postmortem_spinal_cord.fus_vs_ctrl.res)
+
+postmortem_ipsn.sporadic.join = select(nygc_postmortem_spinal_cord.sporadic_vs_ctrl.res, gene_name, gene_id, nygc.stat = stat, nygc.padj = padj) %>% left_join(select(ipsc_mn_sporadic_datasets.res, gene_name, gene_id, ipsn.stat = stat, ipsn.padj = padj))
+postmortem_ipsn.sporadic.overlapping = postmortem_ipsn.sporadic.join %>% filter(nygc.padj < 0.05, ipsn.padj < 0.05, (nygc.stat > 0 & ipsn.stat > 0) | (nygc.stat < 0 & ipsn.stat < 0)) %>% top_n(n = 20, wt = abs(nygc.stat)) %>% pull(gene_name)
+postmortem_ipsn.c9orf72.join = select(nygc_postmortem_spinal_cord.c9orf72_vs_ctrl.res, gene_name, gene_id, nygc.stat = stat, nygc.padj = padj) %>% left_join(select(ipsc_mn_c9orf72_datasets.res, gene_name, gene_id, ipsn.stat = stat, ipsn.padj = padj))
+postmortem_ipsn.c9orf72.overlapping = postmortem_ipsn.c9orf72.join %>% filter(nygc.padj < 0.05, ipsn.padj < 0.05, (nygc.stat > 0 & ipsn.stat > 0) | (nygc.stat < 0 & ipsn.stat < 0)) %>% top_n(n = 20, wt = abs(nygc.stat)) %>% pull(gene_name)
+postmortem_ipsn.sod1.join = select(nygc_postmortem_spinal_cord.sod1_vs_ctrl.res, gene_name, gene_id, nygc.stat = stat, nygc.padj = padj) %>% left_join(select(ipsc_mn_sod1_datasets.res, gene_name, gene_id, ipsn.stat = stat, ipsn.padj = padj))
+postmortem_ipsn.sod1.overlapping = postmortem_ipsn.sod1.join %>% filter(nygc.padj < 0.05, ipsn.padj < 0.05, (nygc.stat > 0 & ipsn.stat > 0) | (nygc.stat < 0 & ipsn.stat < 0)) %>% top_n(n = 20, wt = abs(nygc.stat)) %>% pull(gene_name)
+postmortem_ipsn.fus.join = select(nygc_postmortem_spinal_cord.fus_vs_ctrl.res, gene_name, gene_id, nygc.stat = stat, nygc.padj = padj) %>% left_join(select(ipsc_mn_fus_datasets.res, gene_name, gene_id, ipsn.stat = stat, ipsn.padj = padj))
+postmortem_ipsn.fus.overlapping = postmortem_ipsn.fus.join %>% filter(nygc.padj < 0.05, ipsn.padj < 0.05, (nygc.stat > 0 & ipsn.stat > 0) | (nygc.stat < 0 & ipsn.stat < 0)) %>% top_n(n = 20, wt = abs(nygc.stat)) %>% pull(gene_name)
+
+postmortem_ipsc_mn_mutations_list_t_stat_plot <- plot_grid(
+plot_de_correlation(model_list1 = postmortem_ipsc_mn_mutations_list, model_list2 = postmortem_ipsc_mn_mutations_list, mutation1 = "Sporadic iPSN", mutation2 = "Sporadic postmortem", highlight = postmortem_ipsn.sporadic.overlapping),
+plot_de_correlation(model_list1 = postmortem_ipsc_mn_mutations_list, model_list2 = postmortem_ipsc_mn_mutations_list, mutation1 = "C9orf72 iPSN", mutation2 = "C9orf72 postmortem", highlight = c(postmortem_ipsn.c9orf72.overlapping, "C9orf72")),
+plot_de_correlation(model_list1 = postmortem_ipsc_mn_mutations_list, model_list2 = postmortem_ipsc_mn_mutations_list, mutation1 = "SOD1 iPSN", mutation2 = "SOD1 postmortem", highlight = c(postmortem_ipsn.sod1.overlapping, "SOD1")),
+plot_de_correlation(model_list1 = postmortem_ipsc_mn_mutations_list, model_list2 = postmortem_ipsc_mn_mutations_list, mutation1 = "FUS iPSN", mutation2 = "FUS postmortem", highlight = c(postmortem_ipsn.fus.overlapping, "FUS")),
+  ncol = 2, nrow = 2)# & xlim(-8,8) & ylim(-8,8)
+postmortem_ipsc_mn_mutations_list_t_stat_plot
+
+```
+
+

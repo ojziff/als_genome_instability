@@ -1,0 +1,550 @@
+---
+title: "Pan-ALS vs control differential splicing"
+author: |
+  | Dr Oliver Ziff
+  | The Francis Crick Institute
+  | Institute of Neurology
+  | University College London, UK
+date: "`r Sys.Date()`"
+output: 
+ rmarkdown::html_document:
+   theme: spacelab
+   highlight: haddock
+   code_folding: hide
+   toc: true
+   toc_float: true
+   smooth_scroll: true
+   number_sections: false
+   self_contained: true  
+---
+
+
+```{r setup, include=FALSE}
+library(Cairo)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
+library(here)
+proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
+source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+
+
+multiqc_rseqc_read_distribution.tsv = read_tsv(here(proj_path,"/nfcore/multiqc/star_salmon/multiqc_data/multiqc_rseqc_read_distribution.txt"), show_col_types = FALSE) %>% clean_names() %>% rename(dataset_sample = sample)
+answerals.vcfannotate = read_csv(here(proj_path,"rnavar/ipsc_mn_als_datasets.vcfannotate.redi.filtered.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), variant_type = factor(variant_type, levels = c("SNP", "Insertion", "Deletion", "Complex"))) %>% 
+  group_by(dataset_sample)%>% add_tally(n, name = "total") %>% ungroup %>% select(dataset_sample, n, type, variant_type, total, everything()) %>% # add a column of sum of variants per sample
+  left_join(multiqc_rseqc_read_distribution.tsv) %>% filter(dataset == "answerals")
+ipsc_mn_als_datasets.starfusion = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal"))) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+
+```
+
+# Fig 5 Variants and fusions
+
+## Variants
+
+### ALS vs CTRL variant number
+
+```{r}
+answerals.vcfannotate.samples_no_variants = answerals.metadata$dataset_sample[!answerals.metadata$dataset_sample %in% answerals.vcfannotate$dataset_sample] # 0 i.e. all samples have at least 1 variant
+answerals.vcfannotate.totals = answerals.vcfannotate %>% distinct(dataset_sample, .keep_all = TRUE) #keep 1 row per sample for total number of variants
+
+# generalised linear model spline
+answerals.vcfannotate.totals.glm = glm(data=answerals.vcfannotate.totals, total ~ CONDITION + rms::rcs(total_reads, 3), family = poisson)
+summary(answerals.vcfannotate.totals.glm)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           1.063e+01  3.409e-03 3119.19   <2e-16 ***
+# CONDITIONALS                          1.020e-02  7.027e-04   14.52   <2e-16 ***
+
+# Violin total variant events
+answerals.vcfannotate.totals.stats = tibble(group1 = "CTRL", group2 = "ALS", p.signif = "****", y.position = 75000, xmin = 1, xmax = 2)
+answerals.vcfannotate.total.violin <- violin_plot(answerals.vcfannotate.totals, color_by = "CONDITION", continuous = "total", cols = c("dodgerblue2", "firebrick2"), one_sample = FALSE, plot_stats = FALSE, arrow_labels = FALSE, ylims = c(50000,76000), dpi = 72, ylabel = "Total Number of Variants", title = "All Variant types") +
+  stat_pvalue_manual(answerals.vcfannotate.totals.stats, tip.length = 0.01, size = 4)
+answerals.vcfannotate.total.violin
+```
+
+### Variant types
+
+#### SNP
+
+```{r}
+answerals.vcfannotate.snp = answerals.vcfannotate %>% filter(variant_type == "SNP") 
+# add samples with 0 variants for each variant type
+samples_no_SNP = answerals.metadata$dataset_sample[!answerals.metadata$dataset_sample %in% pull(answerals.vcfannotate.snp,dataset_sample)] 
+answerals.vcfannotate.snp.glm = glm(data = answerals.vcfannotate.snp, n ~ CONDITION + rms::rcs(total_reads, 3), family = poisson)
+summary(answerals.vcfannotate.snp.glm)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           1.048e+01  3.680e-03 2847.29   <2e-16 ***
+# CONDITIONALS                          8.880e-03  7.581e-04   11.71   <2e-16 ***
+answerals.vcfannotate.snp.stats = tibble(group1 = "CTRL", group2 = "ALS", p.signif = "****", y.position = 62000, xmin = 1, xmax = 2)
+answerals.vcfannotate.snp.violin <- violin_plot(answerals.vcfannotate.snp, color_by = "CONDITION", continuous = "n", cols = c("dodgerblue2", "firebrick2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(40000,64000), dpi = 72, ylabel = "Number of Variants", title = "SNV")  +
+  stat_pvalue_manual(answerals.vcfannotate.snp.stats, tip.length = 0.01, size = 4)
+answerals.vcfannotate.snp.violin
+```
+
+#### Insertions
+
+```{r}
+answerals.vcfannotate.insertion = answerals.vcfannotate %>% filter(variant_type == "Insertion") 
+# add samples with 0 variants for each variant type
+samples_no_Insertion = answerals.metadata$dataset_sample[!answerals.metadata$dataset_sample %in% pull(answerals.vcfannotate.insertion,dataset_sample)]
+answerals.vcfannotate.Insertion.glm = glm(data = answerals.vcfannotate.insertion, n ~ CONDITION + rms::rcs(total_reads, 3), family = poisson)
+summary(answerals.vcfannotate.Insertion.glm)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           8.121e+00  1.219e-02 666.031  < 2e-16 ***
+# CONDITIONALS                          1.928e-02  2.528e-03   7.624 2.47e-14 ***
+
+answerals.vcfannotate.insertion.stats = tibble(group1 = "CTRL", group2 = "ALS", p.signif = "****", y.position = 6400, xmin = 1, xmax = 2)
+answerals.vcfannotate.insertion.violin <- violin_plot(answerals.vcfannotate.insertion, color_by = "CONDITION", continuous = "n", cols = c("dodgerblue2", "firebrick2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(3500,6700), dpi = 72, ylabel = "", title = "Insertion")  +
+  stat_pvalue_manual(answerals.vcfannotate.insertion.stats, tip.length = 0.01, size = 4)
+answerals.vcfannotate.insertion.violin
+```
+
+#### Deletions
+
+```{r}
+answerals.vcfannotate.deletion = answerals.vcfannotate %>% filter(variant_type == "Deletion") 
+samples_no_Deletion = answerals.metadata$dataset_sample[!answerals.metadata$dataset_sample %in% pull(answerals.vcfannotate.deletion,dataset_sample)] 
+answerals.vcfannotate.Deletion.glm = glm(data = answerals.vcfannotate.deletion, n ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+summary(answerals.vcfannotate.Deletion.glm)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           7.858e+00  1.351e-02  581.45  < 2e-16 ***
+# CONDITIONALS                          1.701e-02  2.789e-03    6.10 1.06e-09 ***
+answerals.vcfannotate.insertion.stats = tibble(group1 = "CTRL", group2 = "ALS", p.signif = "****", y.position = 4900, xmin = 1, xmax = 2)
+answerals.vcfannotate.deletion.violin <- violin_plot(answerals.vcfannotate.deletion, color_by = "CONDITION", continuous = "n", cols = c("dodgerblue2", "firebrick2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(3000,5000), dpi = 72, ylabel = "", title = "Deletion") +
+  stat_pvalue_manual(answerals.vcfannotate.insertion.stats, tip.length = 0.01, size = 4)
+answerals.vcfannotate.deletion.violin
+```
+
+### Substitutions
+
+```{r}
+library(MutationalPatterns)
+ref_genome <- "BSgenome.Hsapiens.UCSC.hg38"
+library(ref_genome, character.only = TRUE)
+type_occurrences = readRDS(here(shared_path, "answerals/rnavar/mutationalpatterns/type_occurrences.RDS"))
+answerals.multiqc_rseqc_read_distribution.tsv = read_tsv(here(shared_path,"answerals/nfcore/multiqc/star_salmon/multiqc_data/multiqc_rseqc_read_distribution.txt"), show_col_types = FALSE) %>% clean_names()
+answerals.base_substitutions = type_occurrences %>% as_tibble(rownames = "sample") %>% select(-`C>T at CpG`, -`C>T other`) %>%
+  left_join(select(answerals.metadata, sample, condition)) %>% 
+  pivot_longer(!c(condition, sample), names_to = "Substitution", values_to = "count") %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), Substitution = as.factor(Substitution)) %>%
+  left_join(select(answerals.multiqc_rseqc_read_distribution.tsv, sample, total_reads))
+
+# ### C>A
+# glm_starfusion_C_A = glm(data = filter(answerals.base_substitutions, Substitution == "C>A"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_C_A)
+# # Coefficients:
+# #                                        Estimate Std. Error z value Pr(>|z|)    
+# # (Intercept)                           7.672e+00  1.443e-02 531.861  < 2e-16 ***
+# # CONDITIONALS                          8.564e-03  2.952e-03   2.901  0.00372 ** 
+# 
+# ### C>G
+# glm_starfusion_C_G = glm(data = filter(answerals.base_substitutions, Substitution == "C>G"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_C_G)
+# # Coefficients:
+# #                                        Estimate Std. Error z value Pr(>|z|)    
+# # (Intercept)                           8.085e+00  1.230e-02 657.069   <2e-16 ***
+# # CONDITIONALS                          3.246e-03  2.533e-03   1.281      0.2    
+# 
+# ### C>T
+# glm_starfusion_C_T = glm(data = filter(answerals.base_substitutions, Substitution == "C>T"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_C_T)
+# # Coefficients:
+# #                                        Estimate Std. Error  z value Pr(>|z|)    
+# # (Intercept)                           9.365e+00  6.467e-03 1448.230  < 2e-16 ***
+# # CONDITIONALS                          4.251e-03  1.331e-03    3.193  0.00141 ** 
+# 
+# ### T>A
+# glm_starfusion_T_A = glm(data = filter(answerals.base_substitutions, Substitution == "T>A"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_T_A)
+# # Coefficients:
+# #                                        Estimate Std. Error z value Pr(>|z|)    
+# # (Intercept)                           7.247e+00  1.803e-02 401.926  < 2e-16 ***
+# # CONDITIONALS                          1.202e-02  3.700e-03   3.247  0.00117 ** 
+# 
+# ### T>C
+# glm_starfusion_T_C = glm(data = filter(answerals.base_substitutions, Substitution == "T>C"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_T_C)
+# # Coefficients:
+# #                                        Estimate Std. Error z value Pr(>|z|)    
+# # (Intercept)                           9.563e+00  5.869e-03 1629.54   <2e-16 ***
+# # CONDITIONALS                          1.433e-02  1.214e-03   11.81   <2e-16 ***
+# 
+# ### T>G
+# glm_starfusion_T_G = glm(data = filter(answerals.base_substitutions, Substitution == "T>G"), count ~ CONDITION + rms::rcs(total_reads, 3), family=poisson)
+# summary(glm_starfusion_T_G)
+# # Coefficients:
+# #                                        Estimate Std. Error z value Pr(>|z|)    
+# # (Intercept)                           7.741e+00  1.456e-02 531.774   <2e-16 ***
+# # CONDITIONALS                          2.634e-03  2.995e-03   0.879    0.379    
+
+
+ipsc_mn_als_datasets.Substitution.stat <- answerals.base_substitutions %>% group_by(Substitution) %>% t_test(count ~ CONDITION) %>% mutate(p.signif = c("**","ns","**","**","****","ns"), y.position = c(4500,5500,20500,2700,25000,3900)) 
+# ipsc_mn_als_datasets.Substitution.stat
+# # Substitution .y.   group1 group2    n1    n2 statistic    df      p p.signif y.position
+# #   <fct>        <chr> <chr>  <chr>  <int> <int>     <dbl> <dbl>  <dbl> <chr>         <dbl>
+# # 1 C>A          count CTRL   ALS       42   238     -2.14  59.5 0.0362 **             4500
+# # 2 C>G          count CTRL   ALS       42   238     -1.77  62.4 0.0812 ns             5500
+# # 3 C>T          count CTRL   ALS       42   238     -1.86  63.6 0.0672 **            20500
+# # 4 T>A          count CTRL   ALS       42   238     -2.27  56.2 0.0269 **             2700
+# # 5 T>C          count CTRL   ALS       42   238     -2.23  56.0 0.0294 ****          25000
+# # 6 T>G          count CTRL   ALS       42   238     -1.86  63.8 0.0674 ns             3900
+answerals.base_substitutions.violin <- ggplot(answerals.base_substitutions, aes(x = CONDITION, y = count, colour = CONDITION)) +
+    ggrastr::rasterise(geom_violin(adjust = 1), dpi = 72) +
+    ggrastr::rasterise(geom_sina(size = 0.5), dpi = 72) +
+    ggrastr::rasterise(geom_boxplot(aes(fill = CONDITION), colour = "black", width=0.2, alpha = 0.5, outlier.shape = NA), dpi = 72) + 
+    scale_colour_manual(values = c("dodgerblue2", "firebrick2")) + scale_fill_manual(values = c("dodgerblue2", "firebrick2")) +
+    theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+    facet_wrap(~ Substitution, scales = "free", nrow = 2)  + labs(y = "Number of Variants", x = "") + #, title = "Base substitution types"
+    stat_pvalue_manual(ipsc_mn_als_datasets.Substitution.stat, label = "p.signif", tip.length = 0.01, size = 4, hide.ns = TRUE)
+answerals.base_substitutions.violin
+
+```
+
+
+## Fusions
+
+### Venn overlap unqiue gene fusions
+
+```{r}
+ipsc_mn_als_datasets.starfusion.als_events <- ipsc_mn_als_datasets.starfusion %>% filter(condition == "als") %>% distinct(fusion_name) %>% pull(fusion_name)
+ipsc_mn_als_datasets.starfusion.ctrl_events <- ipsc_mn_als_datasets.starfusion %>% filter(condition == "ctrl") %>% distinct(fusion_name) %>% pull(fusion_name)
+ipsc_mn_als_datasets.starfusion.als_ctrl_events <- list("ALS" = ipsc_mn_als_datasets.starfusion.als_events, "CTRL" = ipsc_mn_als_datasets.starfusion.ctrl_events)
+ipsc_mn_als_datasets.starfusion.als_ctrl_events_venn <- ggvenn(ipsc_mn_als_datasets.starfusion.als_ctrl_events, fill_color = c("firebrick2", "dodgerblue2"), set_name_color = c("firebrick2", "dodgerblue2"), show_percentage = FALSE, stroke_size = 0.4, set_name_size = 3.5) + labs(subtitle = "Unique Gene Fusions")  + 
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 9), plot.margin = unit(c(0, -1, 0, -1), "lines"))
+ipsc_mn_als_datasets.starfusion.als_ctrl_events_venn
+```
+
+### Violin ALS vs CTRL
+
+```{r}
+ipsc_mn_als_datasets.starfusion.n = ipsc_mn_als_datasets.starfusion %>% 
+  add_count(dataset_sample) %>% # count number of fusions per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, dataset, total_reads) #keep 1 row per sample
+
+# add samples with 0 fusions
+ipsc_mn_als_datasets.starfusion.samples_no_fusions = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% ipsc_mn_als_datasets.starfusion.n$dataset_sample] # "smith_tardbp_1" "smith_ctrl_1"  0 events
+ipsc_mn_als_datasets.paired_end.metadata.no_fusions = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% ipsc_mn_als_datasets.starfusion.samples_no_fusions) %>% 
+  left_join(multiqc_rseqc_read_distribution.tsv) %>%
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), n = 0) %>% select(dataset_sample, n, CONDITION, dataset, total_reads)
+ipsc_mn_als_datasets.starfusion.n = bind_rows(ipsc_mn_als_datasets.starfusion.n, ipsc_mn_als_datasets.paired_end.metadata.no_fusions)
+
+glm_starfusion = glm(data = ipsc_mn_als_datasets.starfusion.n, n ~ CONDITION + dataset + rms::rcs(total_reads, 3), family=poisson)
+summary(glm_starfusion)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           2.121e+00  3.330e-01   6.369 1.90e-10 ***
+# CONDITIONALS                          1.327e-01  4.282e-02   3.098  0.00195 ** 
+
+ipsc_mn_als_datasets.starfusion.n.stats = tibble(group1 = "CTRL", group2 = "ALS", p.signif = "**", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.n, color_by = "CONDITION", continuous = "n", cols = c("dodgerblue2", "firebrick2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,42), dpi = 72, ylabel = "Number of Fusion Events", title = "All Fusion types") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.n.stats, tip.length = 0.01, size = 4)
+ipsc_mn_als_datasets.starfusion.violin
+```
+
+# Table S8 RNA variants
+
+```{r}
+answerals.vcfannotate.s8 = answerals.vcfannotate %>% select(dataset, sample, n, variant_type, condition, mutation, Total = total) %>% 
+  pivot_wider(names_from = "variant_type", values_from = "n", values_fill = 0) %>% 
+  select(dataset, sample, condition, mutation, Total, SNP, Insertion, Deletion) %>% #, Complex
+  arrange(condition)
+kbl(answerals.vcfannotate.s8) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+
+# Table S9 RNA fusion events in each sample
+
+```{r}
+ipsc_mn_als_datasets.starfusion.table_s9 = ipsc_mn_als_datasets.starfusion.n %>% select(dataset, sample, condition, mutation, fusion_number, total_reads)
+kbl(ipsc_mn_als_datasets.starfusion.table_s9) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+```
+
+# Table S10 RNA fusion burden
+
+```{r}
+## Fusions with greatest frequency
+ipsc_mn_als_datasets.starfusion.als.count = ipsc_mn_als_datasets.starfusion %>% filter(condition == "als") %>% count(breakpoints, name = "als_yes")
+ipsc_mn_als_datasets.starfusion.ctrl.count = ipsc_mn_als_datasets.starfusion %>% filter(condition == "ctrl") %>% count(breakpoints, name = "ctrl_yes")
+ipsc_mn_als_datasets.starfusion.als_ctrl.prop = ipsc_mn_als_datasets.starfusion.als.count %>% full_join(ipsc_mn_als_datasets.starfusion.ctrl.count)  %>% replace(is.na(.),0) %>% 
+  mutate(als_total = 360, ctrl_total = 90) 
+
+library(ClusterBurden)
+ipsc_mn_als_datasets.starfusion.als_ctrl.burden = ipsc_mn_als_datasets.starfusion.als_ctrl.prop %>% rowwise() %>% 
+  mutate(p_value = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total), 
+         odds_ratio = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$estimate[1],
+         lower_ci = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$conf.int[1], 
+         upper_ci = ClusterBurden::burden_test(n1 = als_yes, n2 = ctrl_yes, ss1 = als_total, ss2 = ctrl_total, pval = FALSE)$conf.int[2])
+
+als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
+als_ctrl.voila.splicing_genes = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_name) %>% pull(gene_name) # 264
+
+# add back gene fusion names
+ipsc_mn_als_datasets.starfusion.als_ctrl.burden_table = ipsc_mn_als_datasets.starfusion.als_ctrl.burden %>% left_join(distinct(select(ipsc_mn_als_datasets.starfusion, breakpoints, fusion_name, fusion_type))) %>% arrange(p_value) %>% 
+  mutate(gene1 = str_split_fixed(fusion_name, "--",2)[,1], gene2 = str_split_fixed(fusion_name, "--",2)[,2], alterated_splicing = case_when(gene1 %in% als_ctrl.voila.splicing_genes | gene2 %in% als_ctrl.voila.splicing_genes ~ "yes", TRUE ~ "")) %>%
+  select(fusion_name, breakpoints, fusion_type, als_number = als_yes, ctrl_number = ctrl_yes, odds_ratio, lower_ci, upper_ci, p_value, alterated_splicing)
+kbl(ipsc_mn_als_datasets.starfusion.als_ctrl.burden_table) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+
+# Fig S13 Variants & fusion types & genetic groups
+
+## Variants
+
+### Base substitution proportions
+
+```{r}
+base_substitutions.als_ctrl.sd <- plot_spectrum(type_occurrences, by = answerals.metadata$condition, CT = FALSE, indv_points = TRUE, error_bars = "stdev") # error bars SD rather than 95% CI
+base_substitutions.als_ctrl.sd
+
+tb_per_sample <- type_occurrences[, seq_len(6)] %>% tibble::rownames_to_column("sample") %>% 
+        dplyr::mutate(condition = factor(toupper(answerals.metadata$condition), levels = c("CTRL","ALS"))) %>% tidyr::pivot_longer(c(-sample, 
+        -condition), names_to = "variable", values_to = "nmuts") %>% 
+        dplyr::group_by(sample) %>% dplyr::mutate(value = nmuts/sum(nmuts)) %>% 
+        dplyr::ungroup() %>% dplyr::mutate(sub_type = stringr::str_remove(variable, 
+        " .*"), variable = factor(variable, levels = unique(variable)))
+tb <- tb_per_sample %>% dplyr::group_by(condition, variable) %>% dplyr::summarise(sub_type = sub_type[[1]], 
+        mean = mean(value), stdev = stats::sd(value), total_individuals = sum(value), 
+        total_mutations = sum(nmuts)) %>% dplyr::mutate(total_individuals = sum(total_individuals), 
+        total_mutations = sum(total_mutations)) %>% dplyr::mutate(sem = stdev/sqrt(total_individuals), 
+        error_95 = ifelse(total_individuals > 1, qt(0.975, df = total_individuals - 
+            1) * sem, NA)) %>% dplyr::ungroup() %>% dplyr::mutate(total_mutations = prettyNum(total_mutations, 
+        big.mark = ","), total_mutations = paste("No. mutations = ", 
+        total_mutations), error_pos = mean)
+tb_per_sample = left_join(tb_per_sample, tb[, c("condition", "sub_type", "total_mutations")], by = c("condition", "sub_type"))
+base_substitutions.als_ctrl.sd.type <- ggplot(data = tb_per_sample, aes(x = condition, y = value, colour = condition)) + 
+    ggrastr::rasterise(geom_violin(adjust = 1), dpi = 72) +
+    ggrastr::rasterise(geom_sina(size = 0.5), dpi = 72) +
+    ggrastr::rasterise(geom_boxplot(aes(fill = condition), colour = "black", width=0.2, alpha = 0.5, outlier.shape = NA), dpi = 72) + 
+    scale_colour_manual(values = c("dodgerblue2", "firebrick2")) + scale_fill_manual(values = c("dodgerblue2", "firebrick2")) +
+    theme_bw() + xlab("") + ylab("Relative proportions") + 
+    theme_oz() + theme(panel.spacing.x = unit(0.5, "lines"), legend.position = "none") + 
+    facet_wrap(~ sub_type, scales = "free", nrow = 2)
+base_substitutions.als_ctrl.sd.type
+
+```
+
+### Genetic subgroups
+
+```{r}
+answerals.vcfannotate.mutation = answerals.vcfannotate %>% mutate(genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic",mutation %in% c("ctrl","iso") ~ "CTRL"), genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "C9orf72", "SOD1"))) %>% #mutation == "fus" ~ "FUS","FUS",  mutation == "tardbp" ~ "TARDBP", "TARDBP", 
+  drop_na(genetic_group) %>% # remove all other mutants n < 3.
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, total, genetic_group, CONDITION, total_reads, mutation) # keep 1 row per sample
+
+answerals.metadata_genetic_subgroup = answerals.metadata %>% filter(mutation %in%  c("ctrl", "iso", "sporadic", "sod1", "c9orf72")) #"fus", "tardbp", 
+answerals.vcfannotate.samples_no_variants = answerals.metadata_genetic_subgroup$dataset_sample[!answerals.metadata_genetic_subgroup$dataset_sample %in% answerals.vcfannotate.mutation$dataset_sample]
+answerals.vcfannotate.mutation.totals = answerals.vcfannotate.mutation %>% distinct(dataset_sample, .keep_all = TRUE) #keep 1 row per sample for total number of variants
+
+# generalised linear model spline
+## sporadic
+answerals.vcfannotate.mutation.totals.glm.sporadic = glm(data=filter(answerals.vcfannotate.mutation.totals, genetic_group %in% c("Sporadic", "CTRL")), total ~ genetic_group + rms::rcs(total_reads, 3), family = poisson)
+summary(answerals.vcfannotate.mutation.totals.glm.sporadic)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           1.064e+01  3.849e-03 2764.35   <2e-16 ***
+# genetic_groupSporadic                 1.365e-02  7.146e-04   19.11   <2e-16 ***
+
+# Violin total variant events
+answerals.vcfannotate.mutation.stat <- answerals.vcfannotate.mutation %>% wilcox_test(total ~ genetic_group) %>% add_significance() %>% add_xy_position() %>% filter(group1 == "CTRL") %>%
+  mutate(p.adj.signif = case_when(group2 == "Sporadic" ~ "****", TRUE ~ p.adj.signif), y.position = case_when(group2 == "Sporadic" ~ 75000, TRUE ~ y.position))
+answerals.vcfannotate.mutation.violin <- violin_plot(answerals.vcfannotate.mutation.totals, color_by = "genetic_group", continuous = "total", cols = c("dodgerblue2","firebrick2","forestgreen","gold2","purple","grey"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(50000,76000), dpi = 72, ylabel = "Number of Variants") +
+  stat_pvalue_manual(answerals.vcfannotate.mutation.stat, tip.length = 0.01, size = 4, hide.ns = TRUE)
+answerals.vcfannotate.mutation.violin
+```
+
+
+## Fusions
+
+### Fusion types
+
+```{r}
+ipsc_mn_als_datasets.starfusion.fusion_type_n = ipsc_mn_als_datasets.starfusion %>% 
+  add_count(dataset_sample, fusion_type) %>% # count number of fusion types per sample
+  distinct(dataset_sample, fusion_type, .keep_all = TRUE) %>% select(dataset_sample, fusion_type, n, condition, dataset, total_reads) #keep 1 row per sample fusion type
+# add samples with 0 fusions for each fusion type
+samples_no_neighbours = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Neighbours"),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_neighbours = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_neighbours) %>% mutate(fusion_type = "Neighbours", n = 0) %>% 
+  select(dataset_sample, n, condition, fusion_type)
+samples_no_local_rearrangement = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Local\nRearrangement"),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_local_rearrangement = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_local_rearrangement) %>% mutate(fusion_type = "Local\nRearrangement", n = 0) %>%
+  select(dataset_sample, n, condition, fusion_type)
+samples_no_local_inversion = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Local\nInversion"),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_local_inversion = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_local_inversion) %>% mutate(fusion_type = "Local\nInversion", n = 0) %>% 
+  select(dataset_sample, n, condition, fusion_type)
+samples_no_overlapping_neighbours = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Overlapping\nNeighbours"),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_overlapping_neighbours = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_overlapping_neighbours) %>% mutate(fusion_type = "Overlapping\nNeighbours", n = 0) %>% 
+  select(dataset_sample, n, condition, fusion_type)
+samples_no_distant_proximity = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Distant\nProximity" ),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_distant_proximity = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_distant_proximity) %>% mutate(fusion_type = "Distant\nProximity" , n = 0) %>% 
+  select(dataset_sample, n, condition, fusion_type)
+samples_no_inter_chromosomal = ipsc_mn_als_datasets.paired_end.metadata$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata$dataset_sample %in% pull(filter(ipsc_mn_als_datasets.starfusion.fusion_type_n,fusion_type == "Inter\nChromosomal"),dataset_sample)]
+ipsc_mn_als_datasets.paired_end.metadata.no_inter_chromosomal = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset_sample %in% samples_no_inter_chromosomal) %>% mutate(fusion_type = "Inter\nChromosomal", n = 0) %>% 
+  select(dataset_sample, n, condition, fusion_type)
+ipsc_mn_als_datasets.starfusion.fusion_type_n = bind_rows(ipsc_mn_als_datasets.starfusion.fusion_type_n, ipsc_mn_als_datasets.paired_end.metadata.no_neighbours, ipsc_mn_als_datasets.paired_end.metadata.no_local_rearrangement, ipsc_mn_als_datasets.paired_end.metadata.no_local_inversion, 
+                                                          ipsc_mn_als_datasets.paired_end.metadata.no_overlapping_neighbours, ipsc_mn_als_datasets.paired_end.metadata.no_distant_proximity, ipsc_mn_als_datasets.paired_end.metadata.no_inter_chromosomal) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), 
+         fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")))
+
+### Inter_Chromosomal
+glm_starfusion_Inter_Chromosomal = glm(data = filter(ipsc_mn_als_datasets.starfusion.fusion_type_n, fusion_type == "Inter\nChromosomal"), n ~ CONDITION + dataset + rms::rcs(total_reads, 3), family=poisson)
+summary(glm_starfusion_Inter_Chromosomal)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                          -1.546e-01  1.269e+00  -0.122 0.903002    
+# CONDITIONALS                          6.354e-01  1.717e-01   3.700 0.000216 ***
+
+ipsc_mn_als_datasets.starfusion.fusion_type.stat <- ipsc_mn_als_datasets.starfusion.fusion_type_n %>% group_by(fusion_type) %>% t_test(n ~ CONDITION) %>% mutate(p.signif = c("ns","ns","ns","ns","ns","***"), y.position = 24) 
+
+ipsc_mn_als_datasets.starfusion.fusion_type.violin <- ggplot(ipsc_mn_als_datasets.starfusion.fusion_type_n, aes(x = CONDITION, y = n, colour = CONDITION)) +
+    # ggrastr::rasterise(geom_violin(adjust = 2), dpi = 72) +
+    ggrastr::rasterise(geom_sina(size = 0.5), dpi = 72) +
+    ggrastr::rasterise(geom_boxplot(aes(fill = CONDITION), colour = "black", width=0.2, alpha = 0.5, outlier.shape = NA), dpi = 72) + 
+    scale_colour_manual(values = c("dodgerblue2", "firebrick2")) + scale_fill_manual(values = c("dodgerblue2", "firebrick2")) +
+    theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+    facet_wrap(~ fusion_type, scales = "free", nrow = 2)  + labs(y = "Number of Fusion Events", x = "") +
+    stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.fusion_type.stat, label = "p.signif", tip.length = 0.01, size = 4, hide.ns = TRUE) 
+ipsc_mn_als_datasets.starfusion.fusion_type.violin
+
+# histogram
+ipsc_mn_als_datasets.starfusion.fusion_type.histogram = ggplot(ipsc_mn_als_datasets.starfusion.fusion_type_n, aes(x=n, color=CONDITION, fill=CONDITION)) +
+  geom_histogram(alpha=0.5, position="identity", binwidth = 1)+
+  scale_color_manual(values=c("dodgerblue2", "firebrick2"))+ scale_fill_manual(values=c("dodgerblue2", "firebrick2"))+
+  facet_wrap(~ fusion_type, scales = "free", nrow = 2) + theme_oz() #+ ggtitle("Zeros filled")
+ipsc_mn_als_datasets.starfusion.fusion_type.histogram
+```
+
+
+
+### Genetic subgroups
+
+Sporadic
+
+```{r}
+ipsc_mn_als_datasets.starfusion.sporadic = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")),
+         genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>%
+  filter(dataset %in% c("answerals","neurolincs.diMN"), mutation %in% c("ctrl","iso","sporadic")) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+
+ipsc_mn_als_datasets.starfusion.sporadic.n = ipsc_mn_als_datasets.starfusion.sporadic %>% 
+  add_count(dataset_sample) %>% # count number of fusion per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, genetic_group, mutation, dataset, total_reads) #keep 1 row per sample
+ # add samples with 0 fusions
+
+# Violin
+ipsc_mn_als_datasets.starfusion.sporadic.n.stats = tibble(group1 = "CTRL", group2 = "Sporadic", p.signif = "ns", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.sporadic.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.sporadic.n, color_by = "genetic_group", continuous = "n", cols = c("dodgerblue2", "firebrick2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,43), dpi = 72, ylabel = "Number of Fusion Events") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.sporadic.n.stats, tip.length = 0.01, size = 4, hide.ns = TRUE)
+ipsc_mn_als_datasets.starfusion.sporadic.violin
+```
+
+C9orf72
+
+```{r}
+ipsc_mn_als_datasets.starfusion.c9orf72 = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")),
+         genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>%
+  filter(dataset %in% c("answerals","neurolincs.diMN","catanese","dafinca.c9orf72","neurolincs.iMN","sommer"), mutation %in% c("ctrl","iso","c9orf72")) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+
+ipsc_mn_als_datasets.starfusion.c9orf72.n = ipsc_mn_als_datasets.starfusion.c9orf72 %>% 
+  add_count(dataset_sample) %>% # count number of fusion per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, genetic_group,  mutation, dataset, total_reads) #keep 1 row per sample
+ # add samples with 0 fusions
+
+glm_starfusion.c9orf72 = glm(data = ipsc_mn_als_datasets.starfusion.c9orf72.n, n ~ genetic_group + dataset + rms::rcs(total_reads, 3), family=poisson)
+summary(glm_starfusion.c9orf72)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           2.783e+00  5.216e-01   5.336 9.50e-08 ***
+# CONDITIONALS                          2.401e-01  6.037e-02   3.978 6.96e-05 ***
+
+# Violin
+ipsc_mn_als_datasets.starfusion.c9orf72.n.stats = tibble(group1 = "CTRL", group2 = "C9orf72", p.signif = "****", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.c9orf72.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.c9orf72.n, color_by = "genetic_group", continuous = "n", cols = c("dodgerblue2", "forestgreen"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,43), dpi = 72, ylabel = "Number of Unique Fusion Events") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.c9orf72.n.stats, tip.length = 0.01, size = 4, hide.ns = TRUE)
+ipsc_mn_als_datasets.starfusion.c9orf72.violin
+```
+
+TARDBP
+
+```{r}
+ipsc_mn_als_datasets.starfusion.tardbp = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")),
+         genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>%
+  filter(dataset %in% c("answerals","dafinca.tardbp","smith"), mutation %in% c("ctrl","iso","tardbp")) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+
+ipsc_mn_als_datasets.starfusion.tardbp.n = ipsc_mn_als_datasets.starfusion.tardbp %>% 
+  add_count(dataset_sample) %>% # count number of fusion per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, genetic_group, mutation, dataset, total_reads) #keep 1 row per sample
+ # add samples with 0 fusions
+ipsc_mn_als_datasets.paired_end.metadata.tardbp = ipsc_mn_als_datasets.paired_end.metadata %>% filter(dataset %in% c("answerals","dafinca.tardbp","smith"), mutation %in% c("ctrl","iso","tardbp"))
+ipsc_mn_als_datasets.starfusion.samples_no_fusions.tardbp = ipsc_mn_als_datasets.paired_end.metadata.tardbp$dataset_sample[!ipsc_mn_als_datasets.paired_end.metadata.tardbp$dataset_sample %in% ipsc_mn_als_datasets.starfusion.tardbp.n$dataset_sample] 
+ipsc_mn_als_datasets.paired_end.metadata.no_fusions.tardbp = ipsc_mn_als_datasets.paired_end.metadata.tardbp %>% filter(dataset_sample %in% ipsc_mn_als_datasets.starfusion.samples_no_fusions.tardbp) %>% 
+  left_join(multiqc_rseqc_read_distribution.tsv) %>%
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), n = 0, genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>% select(dataset_sample, n, CONDITION, mutation, dataset, total_reads, genetic_group)
+ipsc_mn_als_datasets.starfusion.tardbp.n = bind_rows(ipsc_mn_als_datasets.starfusion.tardbp.n, ipsc_mn_als_datasets.paired_end.metadata.no_fusions.tardbp)
+
+# Violin
+ipsc_mn_als_datasets.starfusion.tardbp.n.stats = tibble(group1 = "CTRL", group2 = "TARDBP", p.signif = "ns", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.tardbp.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.tardbp.n, color_by = "genetic_group", continuous = "n", cols = c("dodgerblue2", "purple"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,43), dpi = 72, ylabel = "Number of Fusion Events") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.tardbp.n.stats, tip.length = 0.01, size = 4, hide.ns = TRUE)
+ipsc_mn_als_datasets.starfusion.tardbp.violin
+
+```
+
+FUS
+
+```{r}
+ipsc_mn_als_datasets.starfusion.fus = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")),
+         genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>%
+  filter(dataset %in% c("catanese","desantis"), mutation %in% c("ctrl","iso","fus")) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+ipsc_mn_als_datasets.starfusion.fus.n = ipsc_mn_als_datasets.starfusion.fus %>% 
+  add_count(dataset_sample) %>% # count number of fusion per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, genetic_group, mutation, dataset, total_reads) #keep 1 row per sample
+ # add samples with 0 fusions
+
+# Violin
+ipsc_mn_als_datasets.starfusion.fus.n.stats = tibble(group1 = "CTRL", group2 = "FUS", p.signif = "ns", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.fus.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.fus.n, color_by = "genetic_group", continuous = "n", cols = c("dodgerblue2", "grey"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,43), dpi = 72, ylabel = "Number of Fusion Events") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.fus.n.stats, tip.length = 0.01, size = 4, hide.ns = TRUE)
+ipsc_mn_als_datasets.starfusion.fus.violin
+
+```
+
+SOD1
+
+```{r}
+ipsc_mn_als_datasets.starfusion.sod1 = read_csv(here(proj_path,"rnafusion/ipsc_mn_als_datasets.starfusion.csv")) %>% 
+  mutate(CONDITION = factor(toupper(condition), levels = c("CTRL","ALS")), fusion_type = factor(fusion_type, levels = c("Local\nInversion", "Local\nRearrangement", "Neighbours", "Overlapping\nNeighbours", "Distant\nProximity", "Inter\nChromosomal")),
+         genetic_group = case_when(mutation == "c9orf72" ~ "C9orf72", mutation == "sod1" ~ "SOD1", mutation == "sporadic" ~ "Sporadic", mutation == "fus" ~ "FUS", mutation == "tardbp" ~ "TARDBP", mutation %in% c("ctrl","iso") ~ "CTRL"), 
+         genetic_group = factor(genetic_group, levels = c("CTRL", "Sporadic", "SOD1", "C9orf72", "FUS", "TARDBP"))) %>%
+  filter(dataset %in% c("answerals","neurolincs.diMN", "kiskinis","wang"), mutation %in% c("ctrl","iso","sod1")) %>% left_join(multiqc_rseqc_read_distribution.tsv)
+ipsc_mn_als_datasets.starfusion.sod1.n = ipsc_mn_als_datasets.starfusion.sod1 %>% 
+  add_count(dataset_sample) %>% # count number of fusion per sample
+  distinct(dataset_sample, .keep_all = TRUE) %>% select(dataset_sample, n, CONDITION, genetic_group, mutation, dataset, total_reads) #keep 1 row per sample
+ # add samples with 0 fusions
+
+glm_starfusion.sod1 = glm(data = ipsc_mn_als_datasets.starfusion.sod1.n, n ~ genetic_group + dataset + rms::rcs(total_reads, 3), family=poisson)
+summary(glm_starfusion.sod1)
+# Coefficients:
+#                                        Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                           2.748e+00  1.073e+00   2.562   0.0104 *  
+# CONDITIONALS                          3.339e-01  8.367e-02   3.991 6.59e-05 ***
+
+# Violin
+ipsc_mn_als_datasets.starfusion.sod1.n.stats = tibble(group1 = "CTRL", group2 = "SOD1", p.signif = "****", y.position = 40, xmin = 1, xmax = 2)
+ipsc_mn_als_datasets.starfusion.sod1.violin <- violin_plot(ipsc_mn_als_datasets.starfusion.sod1.n, color_by = "genetic_group", continuous = "n", cols = c("dodgerblue2", "gold2"), plot_stats = FALSE, arrow_labels = FALSE, ylims = c(0,43), dpi = 72, ylabel = "Number of Fusion Events") +
+  stat_pvalue_manual(ipsc_mn_als_datasets.starfusion.sod1.n.stats, tip.length = 0.01, size = 4, hide.ns = TRUE)
+ipsc_mn_als_datasets.starfusion.sod1.violin
+
+```
