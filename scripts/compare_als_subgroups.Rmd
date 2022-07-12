@@ -31,18 +31,6 @@ shared_path = here("/camp/lab/luscomben/home/users/ziffo/proj-luscombn-patani/wo
 collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
 source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
 
-# ipsc_mn_sporadic_datasets = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.rds")) #733M
-# ipsc_mn_fus_datasets = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_fus_datasets.rds")) # 84M
-# ipsc_mn_sod1_datasets = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sod1_datasets.rds")) # 162M
-# ipsc_mn_c9orf72_datasets = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_c9orf72_datasets.rds")) # 287M
-# ipsc_mn_tardbp_datasets = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_tardbp_datasets.rds")) # 85M
-# 
-# saveRDS(ipsc_mn_sporadic_datasets$res, here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.res.rds"))
-# saveRDS(ipsc_mn_fus_datasets$res, here(proj_path,"expression/deseq2/ipsc_mn_fus_datasets.res.rds"))
-# saveRDS(ipsc_mn_sod1_datasets$res, here(proj_path,"expression/deseq2/ipsc_mn_sod1_datasets.res.rds"))
-# saveRDS(ipsc_mn_c9orf72_datasets$res, here(proj_path,"expression/deseq2/ipsc_mn_c9orf72_datasets.res.rds"))
-# saveRDS(ipsc_mn_tardbp_datasets$res, here(proj_path,"expression/deseq2/ipsc_mn_tardbp_datasets.res.rds"))
-
 ipsc_mn_sporadic_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.res.rds"))
 ipsc_mn_fus_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_fus_datasets.res.rds"))
 ipsc_mn_sod1_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sod1_datasets.res.rds"))
