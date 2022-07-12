@@ -2,41 +2,31 @@
 
 Oliver Ziff 2022
 
-### [Manuscript](https://www.medrxiv.org/)
+#### [Manuscript link](https://www.medrxiv.org/)
 
-### [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
+#### [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
 
-This page contains scripts to analyse the data and reproduce the figures from the meta-analysis of ALS iPSC-derived motor neurons.
+This page contains scripts to analyse the data and reproduce the figures from the manuscript.
 
 <img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_meta_pipeline.png" height="400">
 
-## [Rmarkdown workbooks](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
+## Rmarkdown workbooks
 
-Knitted HTMLs can be browsed with the links below.
+[Rmarkdown scripts](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
 
-### [RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
+## Knitted HTMLs
 
-<img src="https://github.com/ojziff/ipsn_als_meta/blob/main/figures/ipsn_identities_pca_heatmap.png" height="700">
+[RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
 
-### [pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
+[pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
 
-![Figure 2](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
+[Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
 
-### [Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
+[ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
 
-![Figure 3](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_3.png)
+[pan-ALS vs control differential splicing](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
 
-### [ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
-
-![Extended Data Figure 11](https://github.com/ojziff/ipsn_als_meta/blob/main/postmortem_als.png)
-
-### [pan-ALS vs control differential splicing](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
-
-![Figure 4](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_4.png)
-
-### [Variants and gene fusions]()
-
-![Figure 5](https://github.com/ojziff/ipsn_als_meta/blob/main/figure_5.png)
+[Variants and gene fusions]()
 
 ## Data availability
 
@@ -67,6 +57,6 @@ iPSN RNA sequencing datasets used in this study:
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-For each RNAseq dataset we process samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2 and splicing with MAJIQ2, as per the rmarkdown scripts. Schematics were created using Biorender.com.
+For each dataset we processed samples with nf-core/rnaseq v3.8.1 utilising alignment with STAR and read quantification with salmon. Differential gene expression was performed use DESeq2. Differential splicing was analysed on polyA samples with MAJIQ2. Variant analysis was performed on Answer ALS samples using nf-core/rnavar v1.0.0. RNA fusion analysis was performed on paired-end datasets using nf-core/rnafusion v2.0.0. Schematics were created using Biorender.com.
 
 
