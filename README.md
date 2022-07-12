@@ -18,9 +18,9 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
 
-[pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
+[pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/pan_als_expression.html) 
 
-[Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
+[Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/compare_als_subgroups.html) 
 
 [ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
 
