@@ -22,11 +22,11 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/compare_als_subgroups.html) 
 
-[ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
+[ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_spinal_cord.html) 
 
-[pan-ALS vs control differential splicing](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_splicing.html)
+[pan-ALS vs control differential splicing](https://ojziff.github.io/ipsn_als_meta/html/pan_als_splicing.html)
 
-[Variants and gene fusions]()
+[Variants and gene fusions](https://ojziff.github.io/ipsn_als_meta/html/variants_fusions.html)
 
 ## Data availability
 
