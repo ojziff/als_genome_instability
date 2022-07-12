@@ -34,7 +34,7 @@ iPSN RNA sequencing datasets used in this study:
 
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
 |-----------------------|-----------------------|-----------------------|-------|-----------|--------------|----------------------------------------------|
-| Sareen et al, 2013    | GSE52202              | C9orf72               |     4 |         4 | polyA        | (https://www.ncbi.nlm.nih.gov/pubmed/24154603) |
+| Sareen et al, 2013    | GSE52202              | C9orf72               |     4 |         4 | polyA        | https://www.ncbi.nlm.nih.gov/pubmed/24154603 |
 | Kiskinis et al, 2014  | GSE54409              | SOD1                  |     2 |         3 | polyA        | https://www.ncbi.nlm.nih.gov/pubmed/24704492 |
 | Kapeli et al, 2016    | GSE77702              | FUS                   |     3 |         2 | polyA        | https://www.ncbi.nlm.nih.gov/pubmed/27378374 |
 | Wang et al, 2017      | GSE95089              | SOD1                  |     2 |         2 | polyA        | https://pubmed.ncbi.nlm.nih.gov/28401346/    |
