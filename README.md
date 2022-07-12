@@ -20,8 +20,6 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [pan-ALS vs control differential expression](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
 
-[polyA and total ribo-zero subgroup analyses](https://ojziff.github.io/ipsn_als_meta/html/ipsn_als_expression.html) 
-
 [Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/ipsn_genetic_backgrounds.html) 
 
 [ALS postmortem spinal cord](https://ojziff.github.io/ipsn_als_meta/html/postmortem_als.html) 
