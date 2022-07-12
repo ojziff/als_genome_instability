@@ -1,0 +1,341 @@
+---
+title: "Pan-ALS vs control differential expression"
+author: |
+  | Dr Oliver Ziff
+  | The Francis Crick Institute
+  | Institute of Neurology
+  | University College London, UK
+date: "`r Sys.Date()`"
+output: 
+ rmarkdown::html_document:
+   theme: spacelab
+   highlight: haddock
+   code_folding: hide
+   toc: true
+   toc_float: true
+   smooth_scroll: true
+   number_sections: false
+   self_contained: true  
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.height = 8, fig.width = 10)
+library(here)
+proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
+camp_path = here("/camp/lab/luscomben/home/users/ziffo")
+proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+script_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta/scripts/ipsc_mn_als_meta")
+shared_path = here("/camp/lab/luscomben/home/users/ziffo/proj-luscombn-patani/working")
+collab_path = here("/camp/lab/luscomben/home/users/ziffo/patani-collab")
+source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+
+ipsc_mn_als_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.res.rds"))
+ipsc_mn_als_datasets.polyA.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.polyA.res.rds"))
+ipsc_mn_als_datasets.polyA.vsd = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.polyA.vsd.rds"))
+ipsc_mn_als_datasets.total.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.total.res.rds"))
+ipsc_mn_als_datasets.total.vsd = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.total.vsd.rds"))
+
+```
+
+
+
+# Fig 2 iPSN ALS meta-analysis
+
+## Volcano
+
+```{r}
+ipsc_mn_als_datasets.als.labels <- ipsc_mn_als_datasets.res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`)) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_als_datasets.gene.labels <- ipsc_mn_als_datasets.res %>% filter(!grepl("^AC|^AL", gene_name)) %>% top_n(20, wt = -pvalue) %>% pull(gene_name)
+ipsc_mn_als_datasets.volcano <- volcano_plot(ipsc_mn_als_datasets.res, numerator = "ALS", denomenator = "CTRL",
+               subtitle = "106 Controls vs 323 ALS", ymax = 8, xmax = 2, dpi = 300, gene_labels = c(ipsc_mn_als_datasets.als.labels, ipsc_mn_als_datasets.gene.labels))
+ipsc_mn_als_datasets.volcano
+
+```
+
+## Functional enrichment terms
+
+```{r}
+ipsc_mn_als_datasets.gost <- ipsc_mn_als_datasets.res %>% filter(padj < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+ipsc_mn_als_datasets.gprofiles <- ipsc_mn_als_datasets.gost$result %>% filter(!str_detect(source, "TF|CORUM")) %>% arrange( -log10(p_value) ) %>% mutate(query = case_when(query == "query_1" ~ " ALS Down ", query == "query_2" ~ " ALS Up "), term_name = as.factor(term_name))
+ipsc_mn_als_datasets.gprofiles_down <- ipsc_mn_als_datasets.gprofiles %>% filter(query == " ALS Down ")
+ipsc_mn_als_datasets.gprofiles_up <- ipsc_mn_als_datasets.gprofiles %>% filter(query == " ALS Up ")
+# paste('"',unique(ipsc_mn_als_datasets.gprofiles_down$term_name),'",', sep = "", collapse = '\n') %>% cat()
+down_list <- c(
+"neuron fate commitment",
+"cell differentiation in spinal cord",
+"DNA-binding transcription factor activity, RNA polymerase II-specific",
+"ventral spinal cord development",
+"cis-regulatory region sequence-specific DNA binding"
+)
+ipsc_mn_als_datasets.gprofiles_filt_down <- ipsc_mn_als_datasets.gprofiles %>% filter(query == " ALS Down ")  %>% filter(term_name %in% down_list)
+# paste('"',unique(ipsc_mn_als_datasets.gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
+up_list <- c(
+"p53 transcriptional gene network",
+"Genotoxicity pathway",
+"miRNA regulation of DNA damage response",
+"DNA damage response",
+"p53 signaling pathway")
+ipsc_mn_als_datasets.gprofiles_filt_up <- ipsc_mn_als_datasets.gprofiles %>% filter(query == " ALS Up ")  %>% filter(term_name %in% up_list)
+ipsc_mn_als_datasets.gprofiles_filt_combined <- bind_rows(ipsc_mn_als_datasets.gprofiles_filt_down, ipsc_mn_als_datasets.gprofiles_filt_up) %>% mutate(query = factor(query, levels = c(" ALS Up ", " ALS Down ")))
+ipsc_mn_als_datasets.gprofiles_filt_combined = ipsc_mn_als_datasets.gprofiles_filt_combined %>% mutate(term_name = gsub("miRNA regulation of DNA damage response", "miRNA regulation of DNA damage", term_name), term_name = gsub("and","&",term_name), term_name = gsub("DNA-binding transcription factor activity, RNA polymerase II-specific","transcription factor activity",term_name), term_name = gsub("cis-regulatory region sequence-specific DNA binding","DNA binding",term_name), term_name = gsub("cell ","",term_name))
+ipsc_mn_als_datasets.go_curated <- curated_profiles(gprofiles = ipsc_mn_als_datasets.gprofiles_filt_combined)
+ipsc_mn_als_datasets.go_curated
+```
+
+## GSEA of p53 signalling pathway
+
+```{r}
+ipsc_mn_als_datasets.geneList <- ipsc_mn_als_datasets.res %>% drop_na(stat) %>% pull(stat)
+names(ipsc_mn_als_datasets.geneList) <- ipsc_mn_als_datasets.res %>% drop_na(stat) %>% pull(gene_name) %>% as.character()
+ipsc_mn_als_datasets.geneList = sort(ipsc_mn_als_datasets.geneList, decreasing = TRUE)
+
+# p53 signalling pathway
+p53.signalling_genes.list <- list("p53.signalling" = ipsc_mn_als_datasets.res$gene_name[ipsc_mn_als_datasets.res$gene_name %in% go.pathways.msigdb$GO_SIGNAL_TRANSDUCTION_BY_P53_CLASS_MEDIATOR])
+ipsc_mn_als_datasets.p53.signalling_fgseaRes <- fgsea(pathways = p53.signalling_genes.list, stats = ipsc_mn_als_datasets.geneList)
+ipsc_mn_als_datasets.p53.signalling.gseaplot = plotEnrichment(p53.signalling_genes.list[["p53.signalling"]], ipsc_mn_als_datasets.geneList) + 
+  theme(axis.text=element_text(size=8), axis.title=element_text(size=10)) + ggtitle("p53 signalling") + xlab("") +
+  annotate("text", x = 35000, y = 0.3, label = paste0("NES = ", round(ipsc_mn_als_datasets.p53.signalling_fgseaRes$NES, digits = 3),"\nP = ", round(ipsc_mn_als_datasets.p53.signalling_fgseaRes$pval, digits = 6)), size = 2.8, hjust = 0) + theme_oz()
+ipsc_mn_als_datasets.p53.signalling.gseaplot
+
+```
+
+
+## PROGENy pathways
+
+https://www.bioconductor.org/packages/release/bioc/vignettes/decoupleR/inst/doc/pw_bk.html 
+<https://github.com/saezlab/transcriptutorial/blob/master/scripts/03_Pathway_activity_with_Progeny.md> 
+<https://saezlab.github.io/progeny/>
+
+Pathway RespOnsive GENes (PROGENy) estimates signaling pathway activity
+
+```{r}
+net_progeny <- get_progeny(organism = 'human', top = 100)
+ipsc_mn_als_datasets.res.matrix <- ipsc_mn_als_datasets.res %>% select(gene_name, stat) %>%  drop_na(stat) %>% distinct(gene_name, .keep_all = TRUE) %>% tibble_to_matrix(stat, row_names = "gene_name")
+ipsc_mn_als_progeny.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.res.matrix, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% mutate(p.signif = case_when(p_value < 0.003 ~ "***", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = source, group2 = source)
+ipsc_mn_als_progeny.pathwayActivity <- ggplot(ipsc_mn_als_progeny.contrast_acts, aes(x=reorder(source, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+    scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + 
+    theme_oz() + theme(axis.text.x = element_text(angle = 90), legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "Signaling Pathways", x = "", y = "ALS vs CTRL Normalised enrichment") +
+    stat_pvalue_manual(ipsc_mn_als_progeny.contrast_acts, label = "p.signif", y.position = 14, xmin = "source", xmax = NULL, size = 3, hide.ns = TRUE) 
+ipsc_mn_als_progeny.pathwayActivity
+```
+
+p53 weights
+
+```{r}
+ipsc_mn_als_progeny.p53weights = net_progeny %>% filter(source == "p53", target %in% ipsc_mn_als_datasets.res$gene_name) %>% left_join(select(ipsc_mn_als_datasets.res, target=gene_name,stat)) %>% 
+  mutate(color = case_when(weight > 0 & stat > 0 ~ '1', weight > 0 & stat < 0 ~ '2', weight < 0 & stat > 0 ~ '2', weight < 0 & stat < 0 ~ '1', TRUE ~ "3"))
+ipsc_mn_als_progeny.p53weights.plot = ggplot(ipsc_mn_als_progeny.p53weights, aes(x = weight, y = stat, color = color)) + geom_point(size = 0.5) +
+  scale_colour_manual(values = c("red","royalblue3","grey")) +
+  geom_text_repel(fontface = "italic", data = filter(ipsc_mn_als_progeny.p53weights, weight > 5, stat > 3), aes(label = target), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.1) +
+  theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+  labs(title = "p53 pathway weights", x = "p53 pathway gene weight", y = "ALS vs CTRL test statistic") +
+  geom_vline(xintercept = 0, linetype = 'dotted') +  geom_hline(yintercept = 0, linetype = 'dotted') +
+  coord_cartesian(xlim = c(-8,18), ylim = c(-2.5,5)) 
+ipsc_mn_als_progeny.p53weights.plot
+
+```
+
+## DoRoTHEA transcription factors
+
+https://www.bioconductor.org/packages/release/bioc/vignettes/decoupleR/inst/doc/tf_bk.html
+https://github.com/saezlab/transcriptutorial/blob/master/scripts/04_TranscriptionFactor_activity_with_Dorothea.md
+
+```{r}
+net_dorothea <- get_dorothea(organism='human', levels=c('A', 'B', 'C'))
+ipsc_mn_als_dorothea.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.res.matrix, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% 
+  mutate(p.signif = case_when(p_value < 0.05 ~ "*", TRUE ~ ""), sig = case_when(p_value < 0.135 & abs(score) < 4 ~ "sig", p_value < 0.135 & abs(score) >= 4 ~ "sig_strong", p_value >= 0.135 ~ "non_sig"), direction = ifelse(score > 0, "up", "down"), class = paste(sig, direction))
+
+ipsc_mn_als_dorothea.contrast_acts.labels.up = ipsc_mn_als_dorothea.contrast_acts %>% top_n(score, n = 3) %>% pull(source)
+ipsc_mn_als_dorothea.contrast_acts.labels.down = ipsc_mn_als_dorothea.contrast_acts %>% top_n(-score, n = 3) %>% pull(source)
+
+# Volcano of TFs score vs p_value
+ipsc_mn_als_dorothea.contrast_acts.volcano = ggplot(ipsc_mn_als_dorothea.contrast_acts, aes(x = score, y = -log10(p_value))) + geom_point(aes(colour = class)) +
+    scale_colour_manual(values = c("non_sig up" = "gray", "non_sig down" = "gray",  "sig up" = "#F36F6F", "sig_strong up" = "#EB4445", "sig down" = "#A6CEE3", "sig_strong down" = "#79B1D3")) +
+  labs(y = expression(-log[10]~P~value), x = "Normalised enrichment ALS vs CTRL", title = "Transcription Factors") +
+    guides(colour = "none") +
+    theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+  geom_text_repel(fontface = "italic", data = filter(ipsc_mn_als_dorothea.contrast_acts, source %in% c(ipsc_mn_als_dorothea.contrast_acts.labels.up, ipsc_mn_als_dorothea.contrast_acts.labels.down)), aes(label = source), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.5) +  
+  geom_vline(xintercept = 0, linetype = 'dotted') + ylim(c(0,2.8))
+ipsc_mn_als_dorothea.contrast_acts.volcano
+```
+
+TP53 target genes
+
+```{r}
+ipsc_mn_als_dorothea.tp53 <- net_dorothea %>%  filter(source == "TP53") %>% mutate(gene_name = target) %>% left_join(select(ipsc_mn_als_datasets.res, gene_name,stat,log2FoldChange,pvalue)) %>%
+  mutate(color = case_when(mor > 0 & stat > 0 ~ '1', mor > 0 & stat < 0~'2',mor < 0 & stat > 0~'2',mor < 0 & stat < 0~'1',TRUE ~ "3"))
+
+ipsc_mn_als_dorothea.tp53.volcano = ggplot(ipsc_mn_als_dorothea.tp53, aes(x = log2FoldChange, y = -log10(pvalue), color = color, size=abs(mor))) + geom_point() + scale_size(range = c(0, 3)) +
+  scale_colour_manual(values = c("red","royalblue3","grey")) +
+  geom_text_repel(data = filter(ipsc_mn_als_dorothea.tp53, abs(stat) > 3), aes(label = gene_name, size=1), fontface = "italic", max.overlaps = Inf, size = 2.3) +
+  theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +  geom_vline(xintercept = 0, linetype = 'dotted') + geom_hline(yintercept = 0, linetype = 'dotted') +
+    labs(title = "TP53 regulon", x = "log2 fold change (ALS vs CTRL)", y = expression(-log[10]~P~value)) + ylim(c(0,2)) +   
+  geom_text_repel(fontface = "italic", data = filter(ipsc_mn_als_dorothea.tp53, log2FoldChange > 0.25, -log10(pvalue) > 1.0), aes(label = target), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.5)
+ipsc_mn_als_dorothea.tp53.volcano
+
+```
+
+Merged figure 2
+
+```{r}
+ipsc_mn_als_datasets.figs.merged = plot_grid(
+  plot_grid(ipsc_mn_als_datasets.volcano, ipsc_mn_als_datasets.go_curated, ipsc_mn_als_datasets.p53.signalling.gseaplot, ncol=3, rel_widths = c(1,0.8,0.6), labels = c("a","b","c")), 
+  plot_grid(ipsc_mn_als_progeny.pathwayActivity, ipsc_mn_als_progeny.p53weights.plot,ipsc_mn_als_dorothea.contrast_acts.volcano, ncol=3, rel_widths = c(1,0.9,1), labels = c("d","e","f")), 
+  nrow = 2, rel_heights = c(1.1,1))
+ipsc_mn_als_datasets.figs.merged
+
+```
+
+
+# Table S3 DGE panALS
+
+```{r}
+ipsc_mn_als_datasets.res.sig = ipsc_mn_als_datasets.res %>% filter(padj < 0.05) %>% select(gene_name, everything())
+kbl(ipsc_mn_als_datasets.res.sig) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+# Table S4 Dorothea panALS
+
+```{r}
+ipsc_mn_als_dorothea.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.res.matrix, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 100, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% select(-statistic, -condition, transcription_factor = source, normalised_enrichment_score = score) %>% arrange(p_value, -abs(normalised_enrichment_score))
+kbl(ipsc_mn_als_dorothea.contrast_acts) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+# Fig S8 polyA & total subgroup analyses
+
+## polyA
+
+### PCA
+
+```{r}
+ipsc_mn_als_datasets.polyA.pcaData <- plotPCA(ipsc_mn_als_datasets.polyA.vsd, intgroup=c("sample", "dataset", "database_dir", "condition", "mutation", "dataset_sample", "strandedness", "onset_site", "study_accession", "DIV", "instrument","library_type"), returnData=TRUE) %>% as_tibble() %>%
+  mutate(dataset = as.character(dataset), dataset = gsub("dafianca","dafinca",dataset), dataset_sample = gsub("dafianca","dafinca",dataset_sample), dataset = case_when(dataset == "neurolincs0" & grepl("^0007",sample) ~ "neurolincs_diMN", dataset == "neurolincsA" & grepl("^A-042",sample) ~ "neurolincs_iMN", dataset == "answerals" ~ "AnswerALS",  dataset %in% c("dafinca.c9orf72","dafinca.tardbp") ~ "dafinca", TRUE ~  dataset), 
+         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
+         library_type = case_when(dataset %in% c("catanese","dafinca","kapeli","kiskinis","luisier","mitchell","sareen","sommer","smith","sterneckert","wang") ~ "poly(A)", TRUE ~ "Total")) %>%
+  left_join(select(filter(ipsc_mn_als_datasets.metadata, library_type == "poly(A)"), dataset_sample, gender)) 
+  
+ipsc_mn_als_datasets.polyA.pca_dataset <- ggplot(ipsc_mn_als_datasets.polyA.pcaData, aes(PC1, PC2, color=dataset)) + geom_point(size=1) + 
+  theme_oz() + theme(legend.text=element_text(size=8), legend.title=element_text(size=7), legend.position = "top", legend.spacing = unit(0.01, 'cm')) + 
+  guides(color=guide_legend(keywidth=0.1, keyheight=0.1, default.unit="inch")) +
+  xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets.polyA.pcaData, "percentVar"))[1],"% variance")) + ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets.polyA.pcaData, "percentVar"))[2],"% variance")) + labs(color="polyA\ndatasets") + 
+  ggforce::geom_mark_ellipse(aes(label = dataset), label.fontsize = 8, label.fontface = "plain", con.type = "straight", con.cap = 0.5, show.legend = FALSE)
+ipsc_mn_als_datasets.polyA.pca_dataset
+```
+
+### Volcano
+
+```{r}
+ipsc_mn_als_datasets.polyA.als.labels <- ipsc_mn_als_datasets.polyA.res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`)) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_als_datasets.polyA.gene.labels <- ipsc_mn_als_datasets.polyA.res %>% filter(!grepl("^AC|^AL", gene_name)) %>% top_n(20, wt = -pvalue) %>% pull(gene_name)
+ipsc_mn_als_datasets.polyA.volcano <- volcano_plot(ipsc_mn_als_datasets.polyA.res, numerator = "ALS", denomenator = "CTRL",
+               title = "polyA", subtitle = "43 Controls vs 48 ALS", ymax = 10, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_als_datasets.polyA.als.labels, ipsc_mn_als_datasets.polyA.gene.labels,"SESN1","TCEAL6"), distinct_labels = TRUE)
+ipsc_mn_als_datasets.polyA.volcano
+```
+
+### DoRoTHEA & PROGENy
+
+```{r}
+ipsc_mn_als_datasets.polyA.res.matrix <- ipsc_mn_als_datasets.polyA.res %>% select(gene_name, stat) %>%  drop_na(stat) %>% distinct(gene_name, .keep_all = TRUE) %>% tibble_to_matrix(stat, row_names = "gene_name")
+ipsc_mn_als_datasets.polyA_progeny.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.polyA.res.matrix, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = source, group2 = source)
+ipsc_mn_als_datasets.polyA_progeny.pathwayActivity <- ggplot(ipsc_mn_als_datasets.polyA_progeny.contrast_acts, aes(x=reorder(source, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+    scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + 
+    theme_oz() + theme(axis.text.x = element_text(angle = 90), legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "polyA: Signaling Pathways", x = "", y = "ALS vs CTRL enrichment") +
+    stat_pvalue_manual(ipsc_mn_als_datasets.polyA_progeny.contrast_acts, label = "p.signif", y.position = 12, xmin = "source", xmax = NULL, size = 6, hide.ns = TRUE) 
+ipsc_mn_als_datasets.polyA_progeny.pathwayActivity
+
+ipsc_mn_als_datasets.polyA_dorothea.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.polyA.res.matrix, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% 
+  mutate(p.signif = case_when(p_value < 0.05 ~ "*", TRUE ~ ""), sig = case_when(p_value < 0.135 & abs(score) < 4 ~ "sig", p_value < 0.135 & abs(score) >= 4 ~ "sig_strong", p_value >= 0.135 ~ "non_sig"), direction = ifelse(score > 0, "up", "down"), class = paste(sig, direction))
+ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.labels.up = ipsc_mn_als_datasets.polyA_dorothea.contrast_acts %>% filter(p_value < 0.15) %>% top_n(score, n = 4) %>% pull(source)
+ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.labels.down = ipsc_mn_als_datasets.polyA_dorothea.contrast_acts %>% top_n(-score, n = 4) %>% pull(source)
+
+# Volcano of TFs score vs p_value
+ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.volcano = ggplot(ipsc_mn_als_datasets.polyA_dorothea.contrast_acts, aes(x = score, y = -log10(p_value))) + geom_point(aes(colour = class)) +
+    scale_colour_manual(values = c("non_sig up" = "gray", "non_sig down" = "gray",  "sig up" = "#F36F6F", "sig_strong up" = "#EB4445", "sig down" = "#A6CEE3", "sig_strong down" = "#79B1D3")) +
+  labs(y = expression(-log[10]~P~value), x = "Normalised enrichment ALS vs CTRL", title = "polyA: Transcription Factors") +
+    guides(colour = "none") +
+    theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+  geom_text_repel(fontface = "italic", data = filter(ipsc_mn_als_datasets.polyA_dorothea.contrast_acts, source %in% c(ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.labels.up, ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.labels.down)), aes(label = source), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3) +  
+  geom_vline(xintercept = 0, linetype = 'dotted') + ylim(c(0,2.8))
+ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.volcano
+
+```
+
+
+## Total
+
+### PCA
+
+```{r}
+ipsc_mn_als_datasets.total.pcaData <- plotPCA(ipsc_mn_als_datasets.total.vsd, intgroup=c("sample", "dataset", "database_dir", "condition", "mutation", "dataset_sample", "strandedness", "onset_site", "study_accession", "DIV", "instrument","library_type"), returnData=TRUE) %>% as_tibble() %>%
+  mutate(dataset = as.character(dataset), dataset = gsub("dafianca","dafinca",dataset), dataset_sample = gsub("dafianca","dafinca",dataset_sample), dataset = case_when(dataset == "neurolincs0" & grepl("^0007",sample) ~ "neurolincs_diMN", dataset == "neurolincsA" & grepl("^A-042",sample) ~ "neurolincs_iMN", dataset == "answerals" ~ "AnswerALS",  dataset %in% c("dafinca.c9orf72","dafinca.tardbp") ~ "dafinca", TRUE ~  dataset), 
+         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
+         library_type = case_when(dataset %in% c("catanese","dafinca","kapeli","kiskinis","luisier","mitchell","sareen","sommer","smith","sterneckert","wang") ~ "poly(A)", TRUE ~ "Total")) %>%
+  left_join(select(filter(ipsc_mn_als_datasets.metadata, library_type == "Total"), dataset_sample, gender)) 
+
+ipsc_mn_als_datasets.total.pca_dataset <- ggplot(ipsc_mn_als_datasets.total.pcaData, aes(PC1, PC2, color=dataset)) + geom_point(size=1) + 
+  theme_oz() + theme(legend.text=element_text(size=8), legend.title=element_text(size=7), legend.position = "top", legend.spacing = unit(0.01, 'cm')) + guides(color=guide_legend(nrow=2, keywidth=0.1, keyheight=0.1, default.unit="inch")) +
+  xlab(paste0("PC1: ",round(100 * attr(ipsc_mn_als_datasets.total.pcaData, "percentVar"))[1],"% variance")) +  ylab(paste0("PC2: ",round(100 * attr(ipsc_mn_als_datasets.total.pcaData, "percentVar"))[2],"% variance"))  + labs(color="Total\ndatasets") +
+    ggforce::geom_mark_ellipse(aes(label = dataset), label.fontsize = 8, label.fontface = "plain", con.type = "straight", con.cap = 0.5, show.legend = FALSE)
+ipsc_mn_als_datasets.total.pca_dataset
+```
+
+### Volcano
+
+```{r}
+ipsc_mn_als_datasets.total.als.labels <- ipsc_mn_als_datasets.total.res %>% filter(padj < 0.05, gene_name %in% c(ALS_genes, RNA_BINDING_PROTEINS, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`)) %>% distinct(gene_name) %>% pull(gene_name)
+ipsc_mn_als_datasets.total.gene.labels <- ipsc_mn_als_datasets.total.res %>% filter(!grepl("^AC|^AL", gene_name)) %>% top_n(20, wt = -pvalue) %>% pull(gene_name)
+ipsc_mn_als_datasets.total.volcano <- volcano_plot(ipsc_mn_als_datasets.total.res, numerator = "ALS", denomenator = "CTRL",
+               title = "Total", subtitle = "63 Controls vs 275 ALS", ymax = 8, xmax = 3, dpi = 300, gene_labels = c(ipsc_mn_als_datasets.total.als.labels, ipsc_mn_als_datasets.total.gene.labels,"RNASEL","SESN1", "TCEAL6","MTCO1P12","MTCO2P12","LMO4"))
+ipsc_mn_als_datasets.total.volcano
+```
+
+### DoRoTHEA & PROGENy
+
+```{r}
+ipsc_mn_als_datasets.total.res.matrix <- ipsc_mn_als_datasets.total.res %>% select(gene_name, stat) %>%  drop_na(stat) %>% distinct(gene_name, .keep_all = TRUE) %>% tibble_to_matrix(stat, row_names = "gene_name")
+ipsc_mn_als_datasets.total_progeny.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.total.res.matrix, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = source, group2 = source)
+ipsc_mn_als_datasets.total_progeny.pathwayActivity <- ggplot(ipsc_mn_als_datasets.total_progeny.contrast_acts, aes(x=reorder(source, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+    scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + 
+    theme_oz() + theme(axis.text.x = element_text(angle = 90), legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "Total: Signaling Pathways", x = "", y = "ALS vs CTRL enrichment") +
+    stat_pvalue_manual(ipsc_mn_als_datasets.total_progeny.contrast_acts, label = "p.signif", y.position = 8, xmin = "source", xmax = NULL, size = 6, hide.ns = TRUE) 
+ipsc_mn_als_datasets.total_progeny.pathwayActivity
+
+ipsc_mn_als_datasets.total_dorothea.contrast_acts <- run_wmean(mat=ipsc_mn_als_datasets.total.res.matrix, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 1000, minsize = 5) %>% filter(statistic == 'norm_wmean') %>% 
+  mutate(p.signif = case_when(p_value < 0.05 ~ "*", TRUE ~ ""), sig = case_when(p_value < 0.135 & abs(score) < 4 ~ "sig", p_value < 0.135 & abs(score) >= 4 ~ "sig_strong", p_value >= 0.135 ~ "non_sig"), direction = ifelse(score > 0, "up", "down"), class = paste(sig, direction))
+ipsc_mn_als_datasets.total_dorothea.contrast_acts.labels.up = ipsc_mn_als_datasets.total_dorothea.contrast_acts %>% top_n(score, n = 5) %>% pull(source)
+ipsc_mn_als_datasets.total_dorothea.contrast_acts.labels.down = ipsc_mn_als_datasets.total_dorothea.contrast_acts %>% top_n(-score, n = 5) %>% pull(source)
+# Volcano of TFs score vs p_value
+ipsc_mn_als_datasets.total_dorothea.contrast_acts.volcano = ggplot(ipsc_mn_als_datasets.total_dorothea.contrast_acts, aes(x = score, y = -log10(p_value))) + geom_point(aes(colour = class)) +
+    scale_colour_manual(values = c("non_sig up" = "gray", "non_sig down" = "gray",  "sig up" = "#F36F6F", "sig_strong up" = "#EB4445", "sig down" = "#A6CEE3", "sig_strong down" = "#79B1D3")) +
+  labs(y = expression(-log[10]~P~value), x = "Normalised enrichment ALS vs CTRL", title = "Total: Transcription Factors") +
+    guides(colour = "none") +
+    theme_oz() +  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5), panel.border = element_blank(), axis.ticks = element_line(colour = "black") ) +
+  # scale_y_continuous(expand = c(0,0), limits = c(0,ymax)) + scale_x_continuous(limits = c(-xmax,xmax))
+  geom_text_repel(fontface = "italic", data = filter(ipsc_mn_als_datasets.total_dorothea.contrast_acts, source %in% c(ipsc_mn_als_datasets.total_dorothea.contrast_acts.labels.up, ipsc_mn_als_datasets.total_dorothea.contrast_acts.labels.down, "TP53")), aes(label = source), max.overlaps = Inf, min.segment.length = unit(0, "lines"), size = 2.3) +  
+  geom_vline(xintercept = 0, linetype = 'dotted') + ylim(c(0,2.8))
+ipsc_mn_als_datasets.total_dorothea.contrast_acts.volcano
+```
+
+
+### Compare polyA & total
+
+```{r}
+# # Scatter correlation
+ipsc_mn_als_datasets.polyA_total.labels = select(ipsc_mn_als_datasets.total.res, gene_id, gene_name, polyA.stat = stat) %>% left_join(select(ipsc_mn_als_datasets.polyA.res, gene_id, gene_name, total.stat = stat)) %>% filter((polyA.stat > 2.5 & total.stat > 2.5) | (polyA.stat < -2.5 & total.stat < -2.5))
+ipsc_mn_als_datasets.polyA_total.list = list("polyA: ALS vs CTRL" = ipsc_mn_als_datasets.polyA.res, "Total: ALS vs CTRL" = ipsc_mn_als_datasets.total.res)
+ipsc_mn_als_datasets.polyA_total_stat.corr = plot_de_correlation(model_list1 = ipsc_mn_als_datasets.polyA_total.list, model_list2 = ipsc_mn_als_datasets.polyA_total.list, mutation1 = "polyA: ALS vs CTRL", mutation2 = "Total: ALS vs CTRL", highlight = pull(ipsc_mn_als_datasets.polyA_total.labels,gene_name), plot_corr_line = TRUE)
+ipsc_mn_als_datasets.polyA_total_stat.corr
+
+```
+
+
