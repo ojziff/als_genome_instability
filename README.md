@@ -47,7 +47,7 @@ iPSN RNA sequencing datasets used in this study:
 | Catanese et al., 2021 | GSE168831             | C9orf72               |     6 |         6 | polyA        | https://pubmed.ncbi.nlm.nih.gov/34125498/    |
 |                       |                       | FUS                   |     6 |           |              |                                              |
 | Smith et al, 2021     | PRJEB47567            | TARDBP                |     3 |         2 | polyA        | https://pubmed.ncbi.nlm.nih.gov/34660586/    |
-| Hawkins et al, 2022   | GSE203168             | FUS                   |     2 |         2 | Ribo-zero    | in press                                     |
+| Hawkins et al, 2022   | GSE203168             | FUS                   |     2 |         2 | Ribo-zero    | https://pubmed.ncbi.nlm.nih.gov/35750046/                                     |
 | Sommer et al, 2022    | GSE201407             | C9orf72               |     6 |         6 | polyA        | in press                                     |
 | NeuroLINCS, 2022      | phs001231.v2.p1       | sporadic              |     8 |        14 | Ribo-zero    | https://pubmed.ncbi.nlm.nih.gov/34746695/    |
 |                       |                       | SOD1                  |     6 |           |              |                                              |
