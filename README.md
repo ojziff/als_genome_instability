@@ -2,19 +2,16 @@
 
 Oliver Ziff 2022
 
-#### [Manuscript link](https://www.medrxiv.org/)
-
-#### [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
-
 This page contains scripts to analyse the data and reproduce the figures from the manuscript.
 
 <img src="https://ojziff.github.io/ipsn_als_meta/figures/ipsn_meta_pipeline.png" height="400">
 
-## Rmarkdown workbooks
+#### [Manuscript link](https://www.medrxiv.org/)
 
-[Rmarkdown scripts](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
+#### [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
 
-## Knitted HTMLs
+
+## Workbooks
 
 [RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
 
@@ -28,9 +25,12 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [Variants and gene fusions](https://ojziff.github.io/ipsn_als_meta/html/variants_fusions.html)
 
+Rmarkdown scripts for each of the above workbooks can be accessed [here](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
+
+
 ## Data availability
 
-iPSN RNA sequencing datasets used in this study:
+Raw RNA sequencing fastq files were accessed for each of the iPSN datasets in this table: 
 
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
 |-----------------------|-----------------------|-----------------------|-------|-----------|--------------|----------------------------------------------|
@@ -57,15 +57,15 @@ iPSN RNA sequencing datasets used in this study:
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-For each dataset we processed samples with [nf-core/rnaseq](https://nf-co.re/rnaseq) v3.8.1 utilising alignment with STAR and read quantification with salmon. 
+Raw fastq files were downloaded with [nf-core/fetchngs](https://nf-co.re/fetchngs) v1.7 and processed with [nf-core/rnaseq](https://nf-co.re/rnaseq) v3.8.1 utilising alignment with STAR and read quantification with salmon. 
 
 Differential gene expression was performed using DESeq2 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
 
-Differential splicing was analysed on polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
+Differential splicing was analysed using only polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
 
-Variant analysis was performed on Answer ALS samples using [nf-core/rnavar](https://nf-co.re/rnavar) v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. Adjustment for read coverage was performed using a spline.
+Variant analysis was performed on Answer ALS samples only using [nf-core/rnavar](https://nf-co.re/rnavar) v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. Adjustment for read coverage was performed using a spline.
 
-RNA fusion analysis was performed on paired-end datasets using [nf-core/rnafusion](https://nf-co.re/rnafusion) v2.0.0, utilising the STAR-Fusion workflow. Adjustment was made for dataset and read coverage (with a spline) was performed.
+RNA fusion analysis was performed on paired-end datasets using [nf-core/rnafusion](https://nf-co.re/rnafusion) v2.0.0, utilising the STAR-Fusion workflow. Adjustment was made for dataset and read coverage (with a spline).
 
 Schematics were created using [BioRender](https://biorender.com/).
 
