@@ -25,7 +25,7 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [Variants and gene fusions](https://ojziff.github.io/ipsn_als_meta/html/variants_fusions.html)
 
-Rmarkdown scripts for each of the above workbooks can be accessed [here](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
+Rmarkdown scripts for each of these workbooks can be accessed [here](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
 
 
 ## Data availability
