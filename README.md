@@ -48,7 +48,7 @@ Raw RNA sequencing fastq files were accessed for each of the iPS motor-neuron da
 |                       |                       | FUS                   |     6 |           |              |                                              |
 | Smith et al, 2021     | PRJEB47567            | TARDBP                |     3 |         2 | polyA        | https://pubmed.ncbi.nlm.nih.gov/34660586/    |
 | Hawkins et al, 2022   | GSE203168             | FUS                   |     2 |         2 | Ribo-zero    | https://pubmed.ncbi.nlm.nih.gov/35750046/                                     |
-| Sommer et al, 2022    | GSE201407             | C9orf72               |     6 |         6 | polyA        | in press                                     |
+| Sommer et al, 2022    | GSE201407             | C9orf72               |     6 |         6 | polyA        | https://pubmed.ncbi.nlm.nih.gov/35774867/                                     |
 | NeuroLINCS, 2022      | phs001231.v2.p1       | sporadic              |     8 |        14 | Ribo-zero    | https://pubmed.ncbi.nlm.nih.gov/34746695/    |
 |                       |                       | SOD1                  |     6 |           |              |                                              |
 |                       |                       | C9orf72               |    16 |           |              |                                              |
