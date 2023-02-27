@@ -23,9 +23,9 @@ output:
 library(Cairo)
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
 library(here)
-proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+proj_path = here("/camp/lab/patanir/home/users/ziffo/projects/ipsc-mn-als-meta")
 load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
-source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+source("/camp/lab/patanir/home/users/ziffo/scripts/functions/R_workspace.R")
 
 ipsc_mn_als_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.res.rds"))
 ipsc_mn_als_datasets.polyA.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_als_datasets.polyA.res.rds"))
@@ -191,8 +191,27 @@ kbl(ipsc_mn_als_dorothea.contrast_acts) %>% kable_styling(bootstrap_options = c(
 
 ```
 
+# Fig S8 GSEA DNA damage 
 
-# Fig S8 polyA & total subgroup analyses
+```{r}
+ipsc_mn_als_datasets.geneList <- ipsc_mn_als_datasets.res %>% drop_na(stat) %>% pull(stat)
+names(ipsc_mn_als_datasets.geneList) <- ipsc_mn_als_datasets.res %>% drop_na(stat) %>% pull(gene_name) %>% as.character()
+ipsc_mn_als_datasets.geneList = sort(ipsc_mn_als_datasets.geneList, decreasing = TRUE)
+
+gprofiler_database.DNA_damage_pathways = gprofiler_database[grepl('DNA damage|p53', names(gprofiler_database))]
+gprofiler_database.DNA_damage_pathways_fgseaRes <- fgsea(pathways = gprofiler_database.DNA_damage_pathways, stats = ipsc_mn_als_datasets.geneList)
+gprofiler_database.DNA_damage_pathways_fgseaRes %>% arrange(pval)
+gprofiler_database.DNA_damage.filt = filter(gprofiler_database.DNA_damage_pathways_fgseaRes, size >7, !grepl("uncertain|negative|prostate",pathway)) %>% mutate(p.signif = case_when(pval < 0.003 ~ "***", pval < 0.009 ~ "***",pval < 0.01 ~ "**",pval < 0.05 ~ "*", TRUE ~ ""), group1 = "pathway", group2 = "pathway")
+gprofiler_database.DNA_damage_pathways_fgseaRes.barplot <- ggplot(gprofiler_database.DNA_damage.filt, aes(x=reorder(pathway, NES), y = NES)) +
+    geom_bar(aes(fill = NES), stat = "identity") +
+    scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + 
+    theme_oz() + theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+    labs(title = "DNA damage pathways", y = "ALS vs CTRL iPSMNs\nNormalised Enrichment Score", x = "") + geom_hline(yintercept = 0, linetype = 3) + 
+    stat_pvalue_manual(gprofiler_database.DNA_damage.filt, label = "p.signif", y.position = 2, size = 4, xmin = "pathway", xmax = NULL, hide.ns = TRUE) + coord_flip()
+gprofiler_database.DNA_damage_pathways_fgseaRes.barplot
+```
+
+# Fig S9 polyA & total subgroup analyses
 
 ## polyA
 
@@ -201,7 +220,7 @@ kbl(ipsc_mn_als_dorothea.contrast_acts) %>% kable_styling(bootstrap_options = c(
 ```{r}
 ipsc_mn_als_datasets.polyA.pcaData <- plotPCA(ipsc_mn_als_datasets.polyA.vsd, intgroup=c("sample", "dataset", "database_dir", "condition", "mutation", "dataset_sample", "strandedness", "onset_site", "study_accession", "DIV", "instrument","library_type"), returnData=TRUE) %>% as_tibble() %>%
   mutate(dataset = as.character(dataset), dataset = gsub("dafianca","dafinca",dataset), dataset_sample = gsub("dafianca","dafinca",dataset_sample), dataset = case_when(dataset == "neurolincs0" & grepl("^0007",sample) ~ "neurolincs_diMN", dataset == "neurolincsA" & grepl("^A-042",sample) ~ "neurolincs_iMN", dataset == "answerals" ~ "AnswerALS",  dataset %in% c("dafinca.c9orf72","dafinca.tardbp") ~ "dafinca", TRUE ~  dataset), 
-         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
+         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/patanir/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
          library_type = case_when(dataset %in% c("catanese","dafinca","kapeli","kiskinis","luisier","mitchell","sareen","sommer","smith","sterneckert","wang") ~ "poly(A)", TRUE ~ "Total")) %>%
   left_join(select(filter(ipsc_mn_als_datasets.metadata, library_type == "poly(A)"), dataset_sample, gender)) 
   
@@ -263,7 +282,7 @@ ipsc_mn_als_datasets.polyA_dorothea.contrast_acts.volcano
 ```{r}
 ipsc_mn_als_datasets.total.pcaData <- plotPCA(ipsc_mn_als_datasets.total.vsd, intgroup=c("sample", "dataset", "database_dir", "condition", "mutation", "dataset_sample", "strandedness", "onset_site", "study_accession", "DIV", "instrument","library_type"), returnData=TRUE) %>% as_tibble() %>%
   mutate(dataset = as.character(dataset), dataset = gsub("dafianca","dafinca",dataset), dataset_sample = gsub("dafianca","dafinca",dataset_sample), dataset = case_when(dataset == "neurolincs0" & grepl("^0007",sample) ~ "neurolincs_diMN", dataset == "neurolincsA" & grepl("^A-042",sample) ~ "neurolincs_iMN", dataset == "answerals" ~ "AnswerALS",  dataset %in% c("dafinca.c9orf72","dafinca.tardbp") ~ "dafinca", TRUE ~  dataset), 
-         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/luscomben/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
+         DIV = as.character(DIV), DIV = case_when(is.na(DIV) ~ "30", TRUE ~  DIV), database_dir = gsub("/camp/lab/patanir/home/shared/projects/patani-collab/public-data","/camp/project/proj-luscombn-patani/working/public-data",database_dir),
          library_type = case_when(dataset %in% c("catanese","dafinca","kapeli","kiskinis","luisier","mitchell","sareen","sommer","smith","sterneckert","wang") ~ "poly(A)", TRUE ~ "Total")) %>%
   left_join(select(filter(ipsc_mn_als_datasets.metadata, library_type == "Total"), dataset_sample, gender)) 
 
@@ -320,9 +339,256 @@ ipsc_mn_als_datasets.total_dorothea.contrast_acts.volcano
 # # Scatter correlation
 ipsc_mn_als_datasets.polyA_total.labels = select(ipsc_mn_als_datasets.total.res, gene_id, gene_name, polyA.stat = stat) %>% left_join(select(ipsc_mn_als_datasets.polyA.res, gene_id, gene_name, total.stat = stat)) %>% filter((polyA.stat > 2.5 & total.stat > 2.5) | (polyA.stat < -2.5 & total.stat < -2.5))
 ipsc_mn_als_datasets.polyA_total.list = list("polyA: ALS vs CTRL" = ipsc_mn_als_datasets.polyA.res, "Total: ALS vs CTRL" = ipsc_mn_als_datasets.total.res)
-ipsc_mn_als_datasets.polyA_total_stat.corr = plot_de_correlation(model_list1 = ipsc_mn_als_datasets.polyA_total.list, model_list2 = ipsc_mn_als_datasets.polyA_total.list, mutation1 = "polyA: ALS vs CTRL", mutation2 = "Total: ALS vs CTRL", highlight = pull(ipsc_mn_als_datasets.polyA_total.labels,gene_name), plot_corr_line = TRUE)
+ipsc_mn_als_datasets.polyA_total_stat.corr = plot_de_correlation(model_list1 = ipsc_mn_als_datasets.polyA_total.list, model_list2 = ipsc_mn_als_datasets.polyA_total.list, mutation1 = "polyA: ALS vs CTRL", mutation2 = "Total: ALS vs CTRL", gene_labels = pull(ipsc_mn_als_datasets.polyA_total.labels,gene_name), plot_corr_line = TRUE, plot_p_value = TRUE)
 ipsc_mn_als_datasets.polyA_total_stat.corr
 
 ```
 
+# Fig S10 Datasets independently
+
+
+```{r}
+load(here(proj_path, "expression/deseq2/datasets_separated.RData"))
+
+```
+
+## Volcano
+
+```{r}
+ipsc_mn_datasets_list.res = list("AnswerALS" = answerals$res, "neurolincs.diMN" = neurolincs.diMN$res, "neurolincs.iMN" = neurolincs.iMN$res, "catanese" = catanese$res, "dafinca C9orf72" = dafinca.c9orf72$res, "dafinca tardbp" = dafinca.tardbp$res, "luisier" = luisier$res, "wang" = wang$res, "kiskinis" = kiskinis$res, "sareen" = sareen$res, "sommer" = sommer$res, "sterneckert" = sterneckert$res, "kapeli" = kapeli$res, "desantis" = desantis$res, "smith" = smith$res, "bhinge" = bhinge$res, "hawkins" = hawkins$res)
+ipsc_mn_datasets.res = bind_rows(ipsc_mn_datasets_list.res, .id = "dataset")
+
+datasets_separated.volcano = volcano_plot(ipsc_mn_datasets.res, arrow_labels = FALSE, dpi = 300) + facet_wrap(~dataset, scales = "free", ncol = 6)
+datasets_separated.volcano
+
+```
+
+
+## Correlation heatmap
+
+```{r}
+# heatmap of correlation coefficients
+ipsc_mn_datasets_stat = select(answerals$res, gene_id, answerals = stat) %>% 
+  left_join(select(neurolincs.diMN$res, gene_id, neurolincs.diMN = stat)) %>%
+  left_join(select(neurolincs.iMN$res, gene_id, neurolincs.iMN = stat)) %>%
+  left_join(select(catanese$res, gene_id, catanese = stat)) %>%
+  left_join(select(dafinca.c9orf72$res, gene_id, dafinca.c9orf72 = stat)) %>%
+  left_join(select(dafinca.tardbp$res, gene_id, dafinca.tardbp = stat)) %>%
+  left_join(select(luisier$res, gene_id, luisier = stat)) %>%
+  left_join(select(wang$res, gene_id, wang = stat)) %>%
+  left_join(select(kiskinis$res, gene_id, kiskinis = stat)) %>%
+  left_join(select(sareen$res, gene_id, sareen = stat)) %>%
+  left_join(select(sommer$res, gene_id, sommer = stat)) %>%
+  left_join(select(sterneckert$res, gene_id, sterneckert = stat)) %>%
+  left_join(select(kapeli$res, gene_id, kapeli = stat)) %>%
+  left_join(select(desantis$res, gene_id, desantis = stat)) %>%
+  left_join(select(smith$res, gene_id, smith = stat)) %>%
+  left_join(select(bhinge$res, gene_id, bhinge = stat)) %>%
+  left_join(select(hawkins$res, gene_id, hawkins = stat)) %>%
+  drop_na() %>%
+  column_to_rownames("gene_id")
+cormat <- round(cor(ipsc_mn_datasets_stat),2)
+head(cormat)
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+get_lower_tri<-function(cormat){ # Get lower triangle of the correlation matrix
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+get_upper_tri <- function(cormat){ # Get upper triangle of the correlation matrix
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+  }
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+reorder_cormat <- function(cormat){ # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE) # Melt the correlation matrix
+dataset_dge_correlation_ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white") +  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Pearson\nCorrelation") + 
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 3)  +
+  theme_minimal() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.grid.major = element_blank(), panel.border = element_blank(), panel.background = element_blank(), axis.ticks = element_blank(),
+                          legend.position = c(0.25,0.75), legend.direction = "horizontal", legend.title = element_text(size = 8), axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1), axis.text=element_text(size=7.5)) + # coord_fixed()+ 
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1, title.position = "top", title.hjust = 0.5))
+dataset_dge_correlation_ggheatmap
+
+
+```
+
+
+## p53 PROGENy & TP53 Dorothea
+
+```{r}
+ipsc_mn_datasets_list = list("AnswerALS" = select(answerals$res,gene_name,stat), "neurolincs.diMN" = select(neurolincs.diMN$res,gene_name,stat), "neurolincs.iMN" = select(neurolincs.iMN$res,gene_name,stat), "catanese" = select(catanese$res,gene_name,stat), "dafinca C9orf72" = select(dafinca.c9orf72$res,gene_name,stat), "dafinca tardbp" = select(dafinca.tardbp$res,gene_name,stat), "luisier" = select(luisier$res,gene_name,stat), "wang" = select(wang$res,gene_name,stat), "kiskinis" = select(kiskinis$res,gene_name,stat), "sareen" = select(sareen$res,gene_name,stat), "sommer" = select(sommer$res,gene_name,stat), "sterneckert" = select(sterneckert$res,gene_name,stat), "kapeli" = select(kapeli$res,gene_name,stat), "desantis" = select(desantis$res,gene_name,stat), "smith" = select(smith$res,gene_name,stat), "bhinge" = select(bhinge$res,gene_name,stat), "hawkins" = select(hawkins$res,gene_name,stat))
+datasets <- names(ipsc_mn_datasets_list)
+ipsc_mn_datasets_list = map(ipsc_mn_datasets_list, ~{drop_na(.x)}) 
+ipsc_mn_datasets_list = map(ipsc_mn_datasets_list, ~{distinct(.x, gene_name, .keep_all = TRUE)})
+ipsc_mn_datasets_list = map(ipsc_mn_datasets_list, ~{tibble_to_matrix(.x, stat, row_names = "gene_name")})
+
+# PROGENy
+# net_progeny <- get_progeny(organism = 'human', top = 100)
+ipsc_mn_datasets_list.progeny_scores = map_df(ipsc_mn_datasets_list, ~{run_wmean(.x, net=net_progeny, .source='source', .target='target', .mor='weight', times = 1000, minsize = 5)}, .id = "dataset") %>% filter(statistic == 'norm_wmean')
+
+ipsc_mn_datasets_list.p53.progeny_scores = ipsc_mn_datasets_list.progeny_scores %>% filter(source == "p53") %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = dataset, group2 = dataset)
+ipsc_mn_datasets_list.p53.progeny_scores.plot <- ggplot(ipsc_mn_datasets_list.p53.progeny_scores, aes(x=reorder(dataset, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+  scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + #scale_fill_npg() +  
+  theme_oz() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = 3) +
+  labs(title = "p53 pathway activity", x = "", y = "Normalised enrichment") + #
+  stat_pvalue_manual(ipsc_mn_datasets_list.p53.progeny_scores, label = "p.signif", y.position = 11.5, xmin = "dataset", xmax = NULL, size = 4, hide.ns = TRUE) + ylim(c(-12,12))
+ipsc_mn_datasets_list.p53.progeny_scores.plot
+
+
+# Dorothea
+# net_dorothea <- get_dorothea(organism='human', levels=c('A', 'B', 'C'))
+ipsc_mn_datasets_list.dorothea_scores = map_df(ipsc_mn_datasets_list, ~{run_wmean(.x, net=net_dorothea, .source='source', .target='target', .mor='mor', times = 1000, minsize = 5)}, .id = "dataset") %>% filter(statistic == 'norm_wmean')
+
+ipsc_mn_datasets_list.TP53.dorothea_scores = ipsc_mn_datasets_list.dorothea_scores %>% filter(source == "TP53") %>% mutate(p.signif = case_when(p_value < 0.003 ~ "****", p_value < 0.009 ~ "***",p_value < 0.01 ~ "**",p_value < 0.05 ~ "*", TRUE ~ ""), group1 = dataset, group2 = dataset)
+ipsc_mn_datasets_list.TP53.dorothea_scores.plot <- ggplot(ipsc_mn_datasets_list.TP53.dorothea_scores, aes(x=reorder(dataset, score), y = score)) +
+    geom_bar(aes(fill = score), stat = "identity") +
+  scale_fill_gradient2(low = "darkblue", high = "indianred", mid = "whitesmoke", midpoint = 0) + #scale_fill_npg() +  
+  theme_oz() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = 3) +
+  labs(title = "TP53 Transcription Factor activity", x = "", y = "Normalised enrichment") +
+  stat_pvalue_manual(ipsc_mn_datasets_list.TP53.dorothea_scores, label = "p.signif", y.position = 13, xmin = "dataset", xmax = NULL, size = 4, hide.ns = TRUE) + ylim(c(-13,13))
+ipsc_mn_datasets_list.TP53.dorothea_scores.plot
+
+```
+
+# Fig S11 Proteomics AnswerALS
+
+
+```{r}
+answerals.proteomics.als_vs_ctrl.res = read_csv(here(shared_path,"/answerals/proteomics/answerals_proteomics_als_vs_ctrl.csv"))
+```
+
+QC Mass Spec Answer ALS
+
+```{r}
+answerals_proteomics_intensities = read_csv(here(shared_path,"/answerals/proteomics/AnswerALS-204-P-v1-release5_protein-level-matrix.csv"))
+colnames(answerals_proteomics_intensities) = gsub("-","_",colnames(answerals_proteomics_intensities))
+colnames(answerals_proteomics_intensities) = str_split_fixed(colnames(answerals_proteomics_intensities), "_[0-9]+",n=2)[,1]
+answerals.metadata %>% filter(sample %in% colnames(answerals_proteomics_intensities)) #197 / 204 samples have RNAseq
+targets = tibble(sample = colnames(answerals_proteomics_intensities)) %>% filter(sample!="Protein") %>% mutate(condition = case_when(grepl("CASE",sample)~"als",grepl("CTRL",sample)~"ctrl")) %>% group_split(condition) %>% purrr::map_df(~.x %>% group_by(sample) %>% mutate(replicate = cur_group_id())) %>% ungroup
+
+# log2 transform intensities
+answerals_proteomics_intensities.mat = answerals_proteomics_intensities %>% tibble_to_matrix(everything(), -Protein, row_names = "Protein")
+# boxplot(answerals_proteomics_intensities.mat,las=2,main="AnswerALS intensitites before log2")
+intensities = log2(answerals_proteomics_intensities.mat)
+intensities[intensities ==-Inf] = NA # intensities = na.omit(intensities) #remove rows with NAs
+# boxplot(intensities,las=2,main="AnswerALS intensitites after log2")
+
+# design & contrast
+library(limma)
+# limmaUserGuide()
+ALS = targets %>% mutate(ALS = case_when(grepl("CASE",sample)~1,grepl("CTRL",sample)~0)) %>% tibble_to_matrix(ALS)
+CTRL = targets %>% mutate(CTRL = case_when(grepl("CASE",sample)~0,grepl("CTRL",sample)~1)) %>% tibble_to_matrix(CTRL)
+design = cbind(ALS, CTRL)+0
+# head(design)
+contr = makeContrasts( ALS - CTRL, levels = design)
+fit = lmFit(intensities, design) # linear model
+fit2 = contrasts.fit(fit, contr)
+fit2 = eBayes(fit2, trend = TRUE, robust = TRUE) # https://support.bioconductor.org/p/118495/
+# fit2 # 4442 peptides compared
+
+# QC figures
+proteomics_mds = plotMDS(intensities, pch = 1, cex = 0.5, col=ifelse(targets$condition=="ctrl","blue","red"))
+proteomics_mds.toplot <- data.frame(Dim1 = proteomics_mds$x, Dim2 = proteomics_mds$y, Condition = targets$condition)
+proteomics_mds.plot = ggplot(proteomics_mds.toplot, aes(Dim1, Dim2, colour = Condition)) + geom_point(size=1) +
+  theme_oz() + theme(legend.text=element_text(size=6), legend.title=element_text(size=7), legend.position = "top", legend.box = "vertical", legend.spacing = unit(0.01, 'cm')) + guides(color=guide_legend(keywidth=0.1, keyheight=0.1, default.unit="inch", title.position = "top")) +
+  xlab(paste0("PC1: 29% variance")) +  ylab(paste0("PC2: 11% variance"))
+proteomics_mds.plot
+
+library(gridGraphics)
+library(grid)
+grid.echo()
+mean_var_plot = grid.grab()
+grid.newpage()
+mean_var_plot = editGrob(mean_var_plot)
+grid.draw(mean_var_plot) # mean-variance relationship
+as.ggplot(mean_var_plot)
+answerals.proteomics.qc.fig.merged = ggarrange(proteomics_mds.plot, NULL, p, nrow = 3, heights = c(1,0.25,1), labels = c("a","","b"))
+answerals.proteomics.qc.fig.merged
+
+```
+
+
+## Volcano & GO & GSEA
+ 
+```{r}
+volcanoplot(fit2)
+answerals.proteomics.als_vs_ctrl.volcano = volcano_plot(answerals.proteomics.als_vs_ctrl.res, title = "Protein Expression", subtitle = "171 ALS vs 33 CTRL", 
+  gene_labels = c(pull(top_n(answerals.proteomics.als_vs_ctrl.res,n=10,wt=stat),gene_name), pull(filter(answerals.proteomics.als_vs_ctrl.res, pvalue < 0.05, gene_name %in% c(ALS_genes,p53.signalling.pathway)),gene_name), "TARDBP","FUS","SFPQ","SOD1", "BRD4", "EEF2"),
+                  ymax = 4,xmax = 2,numerator = "ALS",denomenator = "CTRL", significance_threshold = "pvalue", dpi = 300)
+answerals.proteomics.als_vs_ctrl.volcano
+
+# GO terms
+answerals.proteomics.als_vs_ctrl.gost <- answerals.proteomics.als_vs_ctrl.res %>% filter(pvalue < 0.05) %>% group_split(log2FoldChange > 0) %>%  map("gene_id") %>% gost()
+answerals.proteomics.als_vs_ctrl.gprofiles <- answerals.proteomics.als_vs_ctrl.gost$result %>% filter(!str_detect(source, "TF|CORUM|HPA")) %>% arrange( -log10(p_value) ) %>% mutate(query = case_when(query == "query_1" ~ "ALS\nDown", query == "query_2" ~ "ALS\nUp"), term_name = as.factor(term_name))
+answerals.proteomics.als_vs_ctrl.gprofiles_down <- answerals.proteomics.als_vs_ctrl.gprofiles %>% filter(query == "ALS\nDown")
+answerals.proteomics.als_vs_ctrl.gprofiles_up <- answerals.proteomics.als_vs_ctrl.gprofiles %>% filter(query == "ALS\nUp")
+paste('"',unique(answerals.proteomics.als_vs_ctrl.gprofiles_down$term_name),'",', sep = "", collapse = '\n') %>% cat()
+down_list <- c(
+"Schaffer collateral - CA1 synapse",
+"Golgi transport complex")
+answerals.proteomics.als_vs_ctrl.gprofiles_filt_down <- answerals.proteomics.als_vs_ctrl.gprofiles_down %>% filter(query == "ALS\nDown")  %>% filter(term_name %in% down_list)
+paste('"',unique(answerals.proteomics.als_vs_ctrl.gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
+up_list <- c(
+"proteasome complex",
+"Axon guidance",
+"nucleocytoplasmic transport",
+"Cholesterol biosynthesis",
+"Amyotrophic lateral sclerosis",
+"protein modification process",
+"Metabolism of proteins",
+"Cellular responses to stress",
+"protein localization",
+"endoplasmic reticulum",
+"protein binding",
+"Metabolism of RNA",
+"translation",
+"protein metabolic process")
+answerals.proteomics.als_vs_ctrl.gprofiles_filt_up <- answerals.proteomics.als_vs_ctrl.gprofiles_up %>% filter(query == "ALS\nUp")  %>% filter(term_name %in% up_list)
+answerals.proteomics.als_vs_ctrl.gprofiles_filt_combined <- bind_rows(answerals.proteomics.als_vs_ctrl.gprofiles_filt_down, answerals.proteomics.als_vs_ctrl.gprofiles_filt_up) %>% mutate(query = factor(query, levels = c("ALS\nUp", "ALS\nDown")))
+answerals.proteomics.als_vs_ctrl.go_curated <- curated_profiles(gprofiles = answerals.proteomics.als_vs_ctrl.gprofiles_filt_combined,label_angle = 0) + theme(legend.position = "none", axis.text = element_text(size=10))
+answerals.proteomics.als_vs_ctrl.go_curated
+
+## GSEA: DNA damage response, p53 signalling pathway
+answerals.proteomics.als_vs_ctrl.geneList <- answerals.proteomics.als_vs_ctrl.res %>% drop_na(stat) %>% pull(stat)
+names(answerals.proteomics.als_vs_ctrl.geneList) <- answerals.proteomics.als_vs_ctrl.res %>% drop_na(stat) %>% pull(gene_name) %>% as.character()
+answerals.proteomics.als_vs_ctrl.geneList = sort(answerals.proteomics.als_vs_ctrl.geneList, decreasing = TRUE)
+
+# p53 signalling pathway
+p53.signalling_genes.list <- list("p53.signalling" = answerals.proteomics.als_vs_ctrl.res$gene_name[answerals.proteomics.als_vs_ctrl.res$gene_name %in% p53.signalling.pathway])
+answerals.proteomics.als_vs_ctrl.p53.signalling_fgseaRes <- fgsea(pathways = p53.signalling_genes.list, stats = answerals.proteomics.als_vs_ctrl.geneList)
+answerals.proteomics.als_vs_ctrl.p53.signalling_fgseaRes
+# pathway      pval      padj    log2err        ES       NES size                             leadingEdge
+# 1: p53.signalling 0.5122995 0.5122995 0.04763873 0.2633203 0.9831828  103 RBBP7,CSNK2B,PRMT1,CNOT9,RPL23,RRM2,...
+answerals.proteomics.als_vs_ctrl.p53.signalling.gseaplot = plotEnrichment(p53.signalling_genes.list[["p53.signalling"]], answerals.proteomics.als_vs_ctrl.geneList) + 
+  theme(axis.text=element_text(size=8), axis.title=element_text(size=10)) + ggtitle("p53 signalling") + xlab("") +
+  annotate("text", x = 3000, y = 0.2, label = paste0("NES = ", round(answerals.proteomics.als_vs_ctrl.p53.signalling_fgseaRes$NES, digits = 3),"\nP = ", round(answerals.proteomics.als_vs_ctrl.p53.signalling_fgseaRes$pval, digits = 6)), size = 2.8, hjust = 0) + theme_oz()
+answerals.proteomics.als_vs_ctrl.p53.signalling.gseaplot
+
+```
+
+
+## Protein & RNA correlation
+
+```{r}
+# Compare RNAseq to mass spec
+ipsc_mn_rnaseq_mass_spec.join = select(answerals.proteomics.als_vs_ctrl.res, gene_name, gene_id, MS.lfc = log2FoldChange, MS.pvalue = pvalue, MS.padj = padj, MS.stat = stat) %>% 
+  left_join(select(ipsc_mn_als_datasets.res, gene_name, gene_id, RNA.lfc = log2FoldChange, RNA.pvalue = pvalue, RNA.padj = padj, RNA.stat = stat))
+
+# Correlate RNAseq & Mass Spec
+ipsc_mn_rnaseq_mass_spec = list("RNA-seq: ALS vs CTRL" = ipsc_mn_als_datasets.res, "Mass Spec: ALS vs CTRL" = answerals.proteomics.als_vs_ctrl.res)
+ipsc_mn_rnaseq_mass_spec.scatter = plot_de_correlation(model_list1 = ipsc_mn_rnaseq_mass_spec, model_list2 = ipsc_mn_rnaseq_mass_spec, mutation1 = "RNA-seq: ALS vs CTRL", mutation2 = "Mass Spec: ALS vs CTRL", col = "log2FoldChange", gene_labels = c("MACROD1","EEFSEC","EIF1AY","H3C4","CEMIP","PTGR1","HOXC8","KRT1","IGFBP5","TPX2", "TARDBP","FUS","SFPQ","SOD1"), plot_p_value = TRUE) & xlim(-0.9,0.6) & ylim(-1.8,1.9)
+ipsc_mn_rnaseq_mass_spec.scatter
+
+```
 

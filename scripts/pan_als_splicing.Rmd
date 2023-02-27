@@ -23,18 +23,21 @@ output:
 library(Cairo)
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
 library(here)
-proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
-load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
-source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+proj_path = here("/camp/lab/patanir/home/users/ziffo/projects/ipsc-mn-als-meta")
+load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData"))
+source("/camp/lab/patanir/home/users/ziffo/scripts/functions/R_workspace.R")
 
-als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
-pan_als.voila_modulizer <- read_voila_modulizer(here(proj_path,"splicing/majiq_polyA/modulize/pan_als"), skip_rows = 9)
+load(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.RData"))
+# als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
+# pan_als.voila_modulizer <- read_voila_modulizer(here(proj_path,"splicing/majiq_polyA/modulize/pan_als"), skip_rows = 9)
 ```
 
 
-# Fig 4 Splicing pan ALS
+# Fig 5 Splicing pan ALS
 
-## Volcano
+## iPSMN
+
+### Volcano
 
 ```{r}
 majiq.als_vs_ctrl.RBP.junction_labels <- als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c("YTHDC2", "THOC1", "PRR3", "STAU2", "PTBP3", "SREK1", "POLDIP3")) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
@@ -45,7 +48,7 @@ majiq.als_vs_ctrl.volcano <- majiq_het_volcano_plot(als_ctrl.voila, "Alternative
 majiq.als_vs_ctrl.volcano
 ```
 
-## Functional enrichment terms
+### Functional enrichment terms
 
 ```{r}
 als_ctrl.voila.gost = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
@@ -61,7 +64,7 @@ als_ctrl.voila.gost_filt.terms.curated <- curated_profiles(als_ctrl.voila.gost_f
 als_ctrl.voila.gost_filt.terms.curated
 ```
 
-## Modulizer
+### Modulizer
 
 Pie chart of differential event splicing types 
 
@@ -75,17 +78,89 @@ pan_als.voila_modulizer.sig.pie = ggplot(modulizer_simplfied.sig.summary, aes(x 
 pan_als.voila_modulizer.sig.pie
 ```
 
-## Voila view
+### Voila view
 
 Imported violins from voila view
 
 ```{r}
-polyA_majiq_violins_merged.png = magick::image_read(here(proj_path,"splicing/majiq/figures/polyA_majiq_violins_merged.png"))
+polyA_majiq_violins_merged.png = magick::image_read(here(proj_path,"splicing/majiq/figures/polyA_majiq_violins_nro1.png"))
 polyA_majiq_violins_merged.gg = ggdraw() + draw_image(polyA_majiq_violins_merged.png)
 polyA_majiq_violins_merged.gg
 ```
 
-# Table S7 MAJIQ panALS datasets
+## Postmortem splicing
+
+### Volcano
+
+```{r}
+load(here(nygc_path,"splicing/majiq/voila-tsv/als_vs_ctrl.RData"))
+
+# TDP-43 neuronal nuclei depleted overlap
+neuronal_nuclei_tdp43.liu.voila = read_voila_deltapsi(here(camp_path,"proj-luscombn-patani/working/public-data/neuronal-nuclei-tdp43-liu-2019/splicing/majiq/voila-tsv/tdp43neg_vs_tdp43pos.tsv"), grp1 = "tdp43neg", grp2 = "tdp43pos") %>% mutate(mutation = "tdp43_neuronal_nuclei")
+neuronal_nuclei_tdp43.liu.voila.sig = neuronal_nuclei_tdp43.liu.voila %>% filter(abs(deltapsi) > 0.2, probability_changing > 0.9)# %>% print(n=50)
+
+# TDP43 knockdown overlap
+tdp43kd.als_vs_ctrl.brown.voila = read_voila_deltapsi(here(camp_path,"proj-luscombn-patani/working/public-data/ipsc-mn-tardbp-kd-brown-2022/splicing/majiq/voila-tsv/tdp43kd_vs_ctrl.tsv"), grp1 = "tdp43kd", grp2 = "ctrl") %>% mutate(mutation = "tdp43kd")
+tdp43kd.als_vs_ctrl.brown.voila.sig = tdp43kd.als_vs_ctrl.brown.voila %>% filter(abs(deltapsi) > 0.2, probability_changing > 0.9)# %>% print(n=50)
+
+# Volcano
+majiq.als_vs_ctrl.TDP43.junction_labels <- nygc.als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% TDP43_spliced_genes) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.ALS.junction_labels <- nygc.als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes)) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.als_vs_ctrl.DDR.junction_labels <- nygc.als_ctrl.voila %>% filter(changing_dpsi0.2 == TRUE, gene_name %in% p53.DDR.repair_gene_set) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+majiq.nygc.als_vs_ctrl.volcano <- majiq_het_volcano_plot(nygc.als_ctrl.voila, "Alternative splicing: Post-mortem ALS", numerator = "ALS", denomenator = "CTRL", subtitle = "57 CTRL vs 214 ALS", ymax = 11, xmax = 0.5, dpi = 300, junction_labels = c(majiq.als_vs_ctrl.ALS.junction_labels, majiq.als_vs_ctrl.DDR.junction_labels, majiq.als_vs_ctrl.TDP43.junction_labels))
+majiq.nygc.als_vs_ctrl.volcano
+```
+
+### Functional enrichment terms
+
+```{r}
+nygc.als_ctrl.voilagost = nygc.als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost(sources = c("GO", "KEGG", "REAC", "CORUM"))
+nygc.als_ctrl.voilagost_filt <- nygc.als_ctrl.voilagost$result %>% arrange( -log10(p_value) ) %>% mutate(query = "1")
+table(nygc.als_ctrl.voilagost_filt$query) # 165
+paste('"',unique(nygc.als_ctrl.voilagost_filt$term_name),'",', sep = "", collapse = '\n') %>% cat()
+majiq_als_go_list = c(
+"nervous system development",
+"vesicle-mediated transport",
+"cytoskeleton organization",
+"phosphatidylinositol binding",
+"synapse",
+"actin cytoskeleton",
+"axon",
+"GTPase regulator activity",
+"protein binding"
+  )
+nygc.als_ctrl.voilagost_filt.terms <- nygc.als_ctrl.voilagost_filt %>% filter(term_name %in% majiq_als_go_list)
+nygc.als_ctrl.voilagost_filt.terms.curated <- curated_profiles(nygc.als_ctrl.voilagost_filt.terms, cols = c("forestgreen")) + labs(title = "Postmortem splicing functional enrichment") + theme(plot.title=element_text(size=8), strip.text.y.right = element_blank())
+nygc.als_ctrl.voilagost_filt.terms.curated
+```
+
+### Modulizer
+
+```{r}
+nygc.als_ctrl.voila.modulizer.count = nygc.pan_als.voila_modulizer %>% filter(abs(als_ctrl_het_median_dpsi) > 0.1, als_ctrl_het_tnom < 0.05) %>%
+  count(modulizer_simplified) %>% 
+  mutate(modulizer_simplified = fct_reorder(modulizer_simplified, n, .desc = TRUE)) %>%  
+  add_tally(n) %>% mutate(pct = n/nn *100, pct.label = case_when(pct > 14 ~ paste0(as.character(n)," (", as.character(round(pct,1)),"%)"), TRUE ~ ""), ypos = cumsum(pct) - 0.5*pct) %>% ungroup()
+
+nygc.modulizer_simplfied.sig.summary = nygc.pan_als.voila_modulizer %>% filter(abs(als_ctrl_het_median_dpsi) > 0.1, als_ctrl_het_tnom < 0.05, modulizer_simplified != "orphan_junction") %>% count(modulizer_simplified) %>% mutate(modulizer_simplified = gsub("_"," ",modulizer_simplified), modulizer_accronym = case_when(modulizer_simplified == "alt3and5prime" ~ "A3&A5SS", modulizer_simplified == "alt5prime" ~ "A5SS", modulizer_simplified == "alt3prime" ~ "A3SS", modulizer_simplified == "alternate first exon" ~ "AFE", modulizer_simplified == "alternate last exon" ~ "ALE", modulizer_simplified == "multi exon spanning" ~ "multi-exon", modulizer_simplified == "intron retention" ~ "retained intron", modulizer_simplified == "mutually exclusive exon" ~ "MXE", TRUE ~ modulizer_simplified), modulizer_accronym = fct_reorder(modulizer_accronym, n, .desc = TRUE)) %>% arrange(desc(modulizer_accronym)) %>% 
+  mutate(pct = n/sum(n) *100, pct.label = case_when(pct > 8 ~ paste(as.character(n),"\n", as.character(round(pct,1)),"%"), TRUE ~ ""), ypos = cumsum(pct) - 0.5*pct) #%>% print
+nygc.modulizer_simplfied.sig.summary %>% print
+nygc.pan_als.voila_modulizer.sig.pie = ggplot(nygc.modulizer_simplfied.sig.summary, aes(x = "", y = pct, fill = fct_reorder(modulizer_accronym, n, .desc = TRUE))) + geom_bar(width = 1, stat = "identity", color="white") + coord_polar("y", start=0) + 
+  geom_text(aes(x = 1.2, y = ypos, label = pct.label), color = "black", size=2.5) + scale_fill_brewer(palette="Set1") + 
+  theme_oz() + theme_void() + theme(legend.title=element_blank(), legend.position = "top", legend.text=element_text(size=7), legend.spacing.y = unit(1, 'mm'), legend.spacing.x = unit(1, 'mm'), legend.key.height = unit(0.4, 'cm'), legend.key.width = unit(0.3, 'cm')) + guides(fill=guide_legend(nrow=3))
+nygc.pan_als.voila_modulizer.sig.pie
+```
+
+### Voila view
+
+```{r}
+nygc_majiq_violins_merged.png = magick::image_read(here(proj_path,"splicing/majiq/figures/nygc_majiq_violins_merged.png"))
+nygc_majiq_violins_merged.gg = ggdraw() + draw_image(nygc_majiq_violins_merged.png)
+nygc_majiq_violins_merged.gg
+```
+
+
+# Table S9 MAJIQ panALS datasets
 
 ```{r}
 # als_ctrl.voila = read_voila_het(here(proj_path,"splicing/majiq_polyA/voila-tsv/als_vs_ctrl.tsv"), grp1 = "als", grp2 = "ctrl")
@@ -93,3 +168,227 @@ als_ctrl.voila.sig = als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% sel
 kbl(als_ctrl.voila.sig) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
 
 ```
+
+
+# Table S10 MAJIQ genetic backgrounds
+
+```{r}
+# join at lsv level
+ipsc_mn_mutants_join_datasets.majiq.lsv_level = select(c9orf72_vs_ctrl.voila, gene_name, lsv_junction_id, dpsi.c9orf72 = deltapsi, pval.c9orf72 = tnom, changing.c9orf72 = changing_dpsi0.1) %>%
+  full_join(select(fus_vs_ctrl.voila, gene_name, lsv_junction_id, dpsi.fus = deltapsi, pval.fus = tnom, changing.fus = changing_dpsi0.1)) %>%
+  full_join(select(tardbp_vs_ctrl.voila, gene_name, lsv_junction_id, dpsi.tardbp = deltapsi, pval.tardbp = tnom, changing.tardbp = changing_dpsi0.1)) %>%
+  full_join(select(sod1_vs_ctrl.voila, gene_name, lsv_junction_id, dpsi.sod1 = deltapsi, pval.sod1 = tnom, changing.sod1 = changing_dpsi0.1)) %>%
+  replace_na(list(changing.c9orf72 = FALSE, changing.fus = FALSE, changing.tardbp = FALSE, changing.sod1 = FALSE))
+ipsc_mn_mutants_join_datasets.majiq.lsv_level.filt = ipsc_mn_mutants_join_datasets.majiq.lsv_level %>% 
+  filter((changing.c9orf72 == TRUE & changing.sod1 == TRUE & dpsi.c9orf72 > 0 & dpsi.sod1 > 0) | (changing.c9orf72 == TRUE & changing.fus == TRUE & dpsi.c9orf72 > 0 & dpsi.fus > 0) | 
+           (changing.c9orf72 == TRUE & changing.tardbp == TRUE & dpsi.c9orf72 > 0 & dpsi.tardbp > 0) | 
+         (changing.tardbp == TRUE & changing.sod1 == TRUE & dpsi.tardbp > 0 & dpsi.sod1 > 0) | (changing.fus == TRUE & changing.tardbp == TRUE & dpsi.fus > 0 & dpsi.tardbp > 0) | (changing.fus == TRUE & changing.sod1 == TRUE & dpsi.fus > 0 & dpsi.sod1 > 0) | 
+           (changing.c9orf72 == TRUE & changing.sod1 == TRUE & dpsi.c9orf72 < 0 & dpsi.sod1 < 0) | (changing.c9orf72 == TRUE & changing.fus == TRUE & dpsi.c9orf72 < 0 & dpsi.fus < 0) | 
+           (changing.c9orf72 == TRUE & changing.tardbp == TRUE & dpsi.c9orf72 < 0 & dpsi.tardbp < 0) | 
+         (changing.tardbp == TRUE & changing.sod1 == TRUE & dpsi.tardbp < 0 & dpsi.sod1 < 0) | (changing.fus == TRUE & changing.tardbp == TRUE & dpsi.fus < 0 & dpsi.tardbp < 0) | (changing.fus == TRUE & changing.sod1 == TRUE & dpsi.fus < 0 & dpsi.sod1 < 0)) 
+kbl(ipsc_mn_mutants_join_datasets.majiq.lsv_level.filt) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+# Table S11 MAJIQ postmortem NYGC
+
+```{r}
+nygc.als_ctrl.voila.sig = nygc.als_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% select(-contains("percentile"),-contains("changing"),-ucsc_lsv_link) %>% arrange(-abs(deltapsi)) %>%
+  mutate(neuronal_nuclei_tdp43 = case_when(gene_name %in% tdp43neg_majiq_genes.sig ~ "overlap", TRUE ~ ""), tdp43kd = case_when(gene_name %in% tdp43kd_brown_majiq_genes.sig ~ "overlap", TRUE ~ ""), ipsmn_als = case_when(gene_name %in% als_ctrl.voila.sig$gene_name ~ "overlap", TRUE ~ "")) %>%
+  select(gene_name, lsv_junction_id, deltapsi, pvalue=tnom, neuronal_nuclei_tdp43, tdp43kd, ipsmn_als, everything(), -ttest, -wilcoxon, -lsv_type,-tnom_quantile, -ttest_quantile, -wilcoxon_quantile, -tnom_score)
+kbl(nygc.als_ctrl.voila.sig) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), fixed_thead = T) %>% scroll_box(width = "100%", height = "500px")
+
+```
+
+
+# Fig S16 Genetic groups splicing
+
+## Volcanos
+
+```{r}
+load(file = here(proj_path,"splicing/majiq_polyA/voila-tsv/genetic_backgrounds.RData"))
+
+#MAJIQ Volcanos
+mutations_bind.als_vs_ctrl.voila = bind_rows(c9orf72_vs_ctrl.voila, fus_vs_ctrl.voila, tardbp_vs_ctrl.voila, sod1_vs_ctrl.voila)
+
+### Volcanos
+filter(ipsc_mn_tardbp_datasets.metadata, library_type == "poly(A)") %>% count(condition) 
+tardbp_vs_ctrl.voila %>% filter(changing_dpsi0.2 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`))
+tardbp_vs_ctrl.voila.ALS.labels <- tardbp_vs_ctrl.voila %>% filter(changing_dpsi0.2 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+tardbp_vs_ctrl.voila.volcano <- majiq_het_volcano_plot(tardbp_vs_ctrl.voila, numerator = "TARDBP", denomenator = "CTRL", subtitle = "6 Controls vs 9 TARDBP", ymax = 4, xmax = 0.6, dpi = 300, junction_labels = c(tardbp_vs_ctrl.voila.ALS.labels))
+tardbp_vs_ctrl.voila.volcano
+
+filter(ipsc_mn_fus_datasets.metadata, library_type == "poly(A)") %>% count(condition) 
+fus_vs_ctrl.voila %>% filter(changing_dpsi0.2 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) 
+fus_vs_ctrl.voila.ALS.labels <- fus_vs_ctrl.voila %>% filter(changing_dpsi0.2 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+fus_vs_ctrl.voila.volcano <- majiq_het_volcano_plot(fus_vs_ctrl.voila, numerator = "FUS", denomenator = "CTRL", subtitle = "8 Controls vs 9 FUS", ymax = 4, xmax = 0.5, dpi = 300, junction_labels = c(fus_vs_ctrl.voila.ALS.labels))
+fus_vs_ctrl.voila.volcano
+
+filter(ipsc_mn_c9orf72_datasets.metadata, library_type == "poly(A)") %>% count(condition) 
+c9orf72_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) 
+c9orf72_vs_ctrl.voila.ALS.labels <- c9orf72_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+c9orf72_vs_ctrl.voila.volcano <- majiq_het_volcano_plot(c9orf72_vs_ctrl.voila, numerator = "C9orf72", denomenator = "CTRL", subtitle = "27 Controls vs 23 C9orf72", ymax = 5, xmax = 0.3, dpi = 300, junction_labels = c(c9orf72_vs_ctrl.voila.ALS.labels))
+c9orf72_vs_ctrl.voila.volcano
+
+filter(ipsc_mn_sod1_datasets.metadata, library_type == "poly(A)") %>% count(condition) 
+sod1_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`)) 
+sod1_vs_ctrl.voila.ALS.labels <- sod1_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE, gene_name %in% c(ALS_genes, p53.signalling.pathway, gprofiler_database$`DNA Damage Response`, gprofiler_database$`DNA repair`))  %>% group_by(gene_name) %>% top_n(2, wt = abs(deltapsi)) %>% pull(lsv_junction_id)
+sod1_vs_ctrl.voila.volcano <- majiq_het_volcano_plot(sod1_vs_ctrl.voila, numerator = "SOD1", denomenator = "CTRL", subtitle = "5 Controls vs 4 SOD1", ymax = 3, xmax = 0.3, dpi = 300, junction_labels = c(sod1_vs_ctrl.voila.ALS.labels))
+sod1_vs_ctrl.voila.volcano
+
+```
+
+## GO terms
+
+```{r}
+c9orf72_vs_ctrl.voila.gost = c9orf72_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
+c9orf72_vs_ctrl.voila.gost_filt <- c9orf72_vs_ctrl.voila.gost$result %>% filter(str_detect(source, "KEGG|GO:BP|GO:MF|GO:CC")) %>% arrange( -log10(p_value) )
+table(c9orf72_vs_ctrl.voila.gost_filt$query) # 
+paste('"',unique(c9orf72_vs_ctrl.voila.gost_filt$term_name),'",', sep = "", collapse = '\n') %>% cat()
+majiq_c9orf72_go_list = c(
+"neuron projection morphogenesis",
+"protein binding",
+"Golgi organization",
+"cytoplasm")
+c9orf72_vs_ctrl.voila.gost_filt.terms <- c9orf72_vs_ctrl.voila.gost_filt %>% filter(term_name %in% majiq_c9orf72_go_list)
+c9orf72_vs_ctrl.voila.gost_filt.terms.curated <- curated_profiles(c9orf72_vs_ctrl.voila.gost_filt.terms, cols = c("forestgreen"), title = "C9orf72")+ theme(strip.text.y.right = element_blank())
+c9orf72_vs_ctrl.voila.gost_filt.terms.curated
+
+tardbp_vs_ctrl.voila.gost = tardbp_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
+tardbp_vs_ctrl.voila.gost_filt <- tardbp_vs_ctrl.voila.gost$result %>% filter(str_detect(source, "KEGG|GO:BP|GO:MF|GO:CC")) %>% arrange( -log10(p_value) )
+table(tardbp_vs_ctrl.voila.gost_filt$query) # 
+paste('"',unique(tardbp_vs_ctrl.voila.gost_filt$term_name),'",', sep = "", collapse = '\n') %>% cat()
+majiq_tardbp_go_list = c(
+"synapse",
+"nervous system development",
+"cytoskeleton organization",
+"cell junction organization",
+"neuron projection",
+"axon",
+"protein binding",
+"cytoplasm")
+tardbp_vs_ctrl.voila.gost_filt.terms <- tardbp_vs_ctrl.voila.gost_filt %>% filter(term_name %in% majiq_tardbp_go_list)
+tardbp_vs_ctrl.voila.gost_filt.terms.curated <- curated_profiles(tardbp_vs_ctrl.voila.gost_filt.terms, cols = c("forestgreen"), title = "TARDBP") + theme(strip.text.y.right = element_blank())
+tardbp_vs_ctrl.voila.gost_filt.terms.curated
+
+fus_vs_ctrl.voila.gost = fus_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
+fus_vs_ctrl.voila.gost_filt <- fus_vs_ctrl.voila.gost$result %>% filter(str_detect(source, "KEGG|GO:BP|GO:MF|GO:CC")) %>% arrange( -log10(p_value) )
+table(fus_vs_ctrl.voila.gost_filt$query) # 
+paste('"',unique(fus_vs_ctrl.voila.gost_filt$term_name),'",', sep = "", collapse = '\n') %>% cat()
+majiq_fus_go_list = c(
+"transcription, DNA-templated",
+"microtubule cytoskeleton",
+"regulation of RNA metabolic process",
+"membrane-bounded organelle",
+"organelle organization",
+"cytoplasm",
+"protein binding")
+fus_vs_ctrl.voila.gost_filt.terms <- fus_vs_ctrl.voila.gost_filt %>% filter(term_name %in% majiq_fus_go_list)
+fus_vs_ctrl.voila.gost_filt.terms.curated <- curated_profiles(fus_vs_ctrl.voila.gost_filt.terms, cols = c("forestgreen"), title = "FUS") + theme(strip.text.y.right = element_blank())
+fus_vs_ctrl.voila.gost_filt.terms.curated
+
+sod1_vs_ctrl.voila.gost = sod1_vs_ctrl.voila %>% filter(changing_dpsi0.1 == TRUE) %>% distinct(gene_id) %>% pull(gene_id) %>% gost()
+sod1_vs_ctrl.voila.gost_filt <- sod1_vs_ctrl.voila.gost$result %>% filter(str_detect(source, "KEGG|GO:BP|GO:MF|GO:CC")) %>% arrange( -log10(p_value) )
+table(sod1_vs_ctrl.voila.gost_filt$query) # 
+paste('"',unique(sod1_vs_ctrl.voila.gost_filt$term_name),'",', sep = "", collapse = '\n') %>% cat()
+majiq_sod1_go_list = c(
+"Spliceosome",
+"negative regulation of mRNA processing",
+"negative regulation of RNA splicing",
+"protein binding",
+"regulation of RNA splicing")
+sod1_vs_ctrl.voila.gost_filt.terms <- sod1_vs_ctrl.voila.gost_filt %>% filter(term_name %in% majiq_sod1_go_list)
+sod1_vs_ctrl.voila.gost_filt.terms$term_name = gsub("negative regulation of ", "", sod1_vs_ctrl.voila.gost_filt.terms$term_name)
+sod1_vs_ctrl.voila.gost_filt.terms.curated <- curated_profiles(sod1_vs_ctrl.voila.gost_filt.terms, cols = c("forestgreen"), title = "SOD1") + theme(strip.text.y.right = element_blank())
+sod1_vs_ctrl.voila.gost_filt.terms.curated
+```
+
+## Correlation heatmap
+
+```{r}
+# heatmap of correlation coefficients
+ipsc_mn_mutations_deltapsi = select(c9orf72_vs_ctrl.voila, lsv_junction_id, C9orf72 = deltapsi) %>%
+  left_join(select(sod1_vs_ctrl.voila, lsv_junction_id, SOD1 = deltapsi)) %>%
+  left_join(select(fus_vs_ctrl.voila, lsv_junction_id, FUS = deltapsi)) %>%
+  left_join(select(tardbp_vs_ctrl.voila, lsv_junction_id, TARDBP = deltapsi)) %>%
+  drop_na() %>%
+  column_to_rownames("lsv_junction_id")
+cormat <- round(cor(ipsc_mn_mutations_deltapsi),2)
+head(cormat)
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+get_lower_tri<-function(cormat){ # Get lower triangle of the correlation matrix
+  cormat[upper.tri(cormat)] <- NA
+  return(cormat)
+}
+get_upper_tri <- function(cormat){ # Get upper triangle of the correlation matrix
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+  }
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+reorder_cormat <- function(cormat){ # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+cormat <- reorder_cormat(cormat)
+upper_tri <- get_upper_tri(cormat)
+melted_cormat <- melt(upper_tri, na.rm = TRUE) # Melt the correlation matrix
+majiq_correlation_ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white") +  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Pearson Correlation") + 
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 3)  +
+  theme_minimal() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.grid.major = element_blank(), panel.border = element_blank(), panel.background = element_blank(), axis.ticks = element_blank(),
+                          legend.position = "top", legend.direction = "horizontal", legend.spacing.y = unit(1, 'mm'), legend.title = element_text(size = 8), axis.text=element_text(size=8)) + # coord_fixed()+ 
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 0.5, title.position = "top", title.hjust = 0.5))
+majiq_correlation_ggheatmap
+
+```
+
+
+## Modulizer barchart
+
+````{r}
+genetic_subgroups.modulizer.bind = bind_rows(
+  mutate(rename(c9orf72.voila_modulizer, dpsi = als_ctrl_het_median_dpsi, tnom = als_ctrl_het_tnom), mutation = "C9orf72"), 
+  mutate(rename(fus.voila_modulizer, dpsi = als_ctrl_het_median_dpsi, tnom = als_ctrl_het_tnom), mutation = "FUS"),
+  mutate(rename(tardbp.voila_modulizer, dpsi = als_ctrl_het_median_dpsi, tnom = als_ctrl_het_tnom), mutation = "TARDBP"), 
+  mutate(rename(sod1.voila_modulizer, dpsi = als_ctrl_het_median_dpsi, tnom = als_ctrl_het_tnom), mutation = "SOD1")) %>% 
+  mutate(mutation = factor(mutation, levels = c("C9orf72","FUS", "TARDBP","SOD1")), modulizer_simplified = gsub("_"," ",modulizer_simplified)) %>%
+  filter(tnom < 0.05, abs(dpsi) > 0.1)
+
+genetic_subgroups.modulizer.bind.count = genetic_subgroups.modulizer.bind %>% count(mutation, modulizer_simplified) %>% 
+  mutate(modulizer_simplified = fct_reorder(modulizer_simplified, n, .desc = TRUE)) %>%  
+  group_by(mutation) %>% add_tally(n) %>% mutate(pct = n/nn *100, pct.label = case_when(pct > 11 ~ paste0(as.character(n)," (", as.character(round(pct,1)),"%)"), TRUE ~ ""), ypos = cumsum(pct) - 0.5*pct) %>% ungroup()
+
+genetic_subgroups.modulizer.bind.barplot = ggbarplot(genetic_subgroups.modulizer.bind.count, x="mutation", y="pct", fill="modulizer_simplified", position = position_fill(), xlab = "",  label = genetic_subgroups.modulizer.bind.count$pct.label, lab.size = 3, lab.vjust = 0.5, lab.hjust = 1.5)  +
+  scale_fill_npg() +
+  theme_classic() +  theme(panel.grid = element_blank(), legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.2, "cm"), legend.text=element_text(size=8), legend.key.size = unit(0.4, "cm"), axis.text=element_text(size=8), axis.title=element_text(size=8), strip.text.y = element_text(angle = 0)) +
+  guides(fill = guide_legend(reverse = TRUE, nrow = 2)) +
+  # facet_grid(mutation ~ .,scales="free_y", labeller = "label_parsed") +
+  coord_flip() + ylab(expression(Splicing~type~proportions)) + scale_x_discrete(labels = scales::parse_format()) 
+genetic_subgroups.modulizer.bind.barplot
+
+```
+
+
+## Upset plot
+
+```{r}
+genetic_subgroups.voila.bind = bind_rows(mutate(tardbp_vs_ctrl.voila, mutation = "TARDBP"), mutate(fus_vs_ctrl.voila, mutation = "FUS"), mutate(sod1_vs_ctrl.voila, mutation = "SOD1"), mutate(c9orf72_vs_ctrl.voila, mutation = "C9orf72"))
+
+genetic_subgroups.voila.bind.upset = majiq_upset_plot(genetic_subgroups.voila.bind, overlap_by = "mutation", overlap_level = "lsv_junction_id", split_direction = FALSE, ymax = 1500, order = "freq", order_group_list = c("TARDBP", "FUS", "SOD1", "C9orf72"), label_colours = c("dodgerblue2", "firebrick2", "forestgreen", "gold2"), significance_threshold = "tnom", deltapsi_threshold = 0.1)
+genetic_subgroups.voila.bind.upset
+
+genetic_subgroups.voila.bind.up.upset = majiq_upset_plot(filter(genetic_subgroups.voila.bind, deltapsi > 0), overlap_by = "mutation", overlap_level = "lsv_junction_id", split_direction = FALSE, ymax = 750, order = "freq", order_group_list = c("TARDBP", "FUS", "SOD1", "C9orf72"), title = "ALS splicing increased", label_colours = c("dodgerblue2", "firebrick2", "forestgreen", "gold2"), significance_threshold = "tnom", deltapsi_threshold = 0.1)
+genetic_subgroups.voila.bind.up.upset
+
+genetic_subgroups.voila.bind.down.upset = majiq_upset_plot(filter(genetic_subgroups.voila.bind, deltapsi < 0), overlap_by = "mutation", overlap_level = "lsv_junction_id", split_direction = FALSE, ymax = 770, order = "freq", order_group_list = c("TARDBP", "FUS", "SOD1", "C9orf72"), title = "ALS splicing decreased", label_colours = c("dodgerblue2", "firebrick2", "forestgreen", "gold2"), significance_threshold = "tnom", deltapsi_threshold = 0.1)  
+genetic_subgroups.voila.bind.down.upset
+
+```
+
+
+
+
+

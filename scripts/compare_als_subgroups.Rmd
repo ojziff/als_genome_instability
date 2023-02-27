@@ -23,9 +23,9 @@ output:
 library(Cairo)
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dev="CairoPNG", dpi=72, fig.height = 8, fig.width = 10)
 library(here)
-proj_path = here("/camp/lab/luscomben/home/users/ziffo/projects/ipsc-mn-als-meta")
+proj_path = here("/camp/lab/patanir/home/users/ziffo/projects/ipsc-mn-als-meta")
 load(here(proj_path,"expression/deseq2/ipsc_mn_als_meta.metadata.RData")) # load metadata before functions to avoid overwriting with old functions
-source("/camp/lab/luscomben/home/users/ziffo/scripts/functions/OnDemand_R_functions.R")
+source("/camp/lab/patanir/home/users/ziffo/scripts/functions/R_workspace.R")
 
 ipsc_mn_sporadic_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_sporadic_datasets.res.rds"))
 ipsc_mn_fus_datasets.res = readRDS(here(proj_path,"expression/deseq2/ipsc_mn_fus_datasets.res.rds"))
@@ -188,7 +188,7 @@ ipsc_mn_mutations_list.TP53.dorothea_scores.plot
 
 
 
-# Fig S9 Gene expression overlap mutations 
+# Fig S10 Gene expression overlap mutations 
 
 ## Scatter correlation between subgroups
 
@@ -327,7 +327,7 @@ ipsc_mn_tardbp_datasets.go_curated
 ```
 
 
-# Fig S10 Pathways & Transcription factors
+# Fig S11 Pathways & Transcription factors
 
 Signalling pathways
 
