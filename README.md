@@ -8,7 +8,7 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 #### [Manuscript link](https://www.medrxiv.org/)
 
-#### [Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta/)
+#### [Launch Shiny app](https://oliverziff.shinyapps.io/als_genome_instability/)
 
 
 ## Workbooks
