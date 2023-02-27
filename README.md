@@ -1,6 +1,6 @@
-## Meta-analysis of the ALS spectrum uncovers genome instability
+## Integrated transcriptome landscape of ALS identifies genome instability linked to TDP-43 pathology
 
-Oliver Ziff 2022
+Oliver Ziff 2023
 
 This page contains scripts to analyse the data and reproduce the figures from the manuscript.
 
@@ -13,24 +13,24 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 ## Workbooks
 
-[RNA-seq QC and motor neuron identities](https://ojziff.github.io/ipsn_als_meta/html/qc_identities.html) 
+[RNA-seq QC and motor neuron identities](https://ojziff.github.io/als_genome_instability/html/qc_identities.html) 
 
-[ALS iPSN differential expression](https://ojziff.github.io/ipsn_als_meta/html/pan_als_expression.html) 
+[ALS iPSN differential expression](https://ojziff.github.io/als_genome_instability/html/pan_als_expression.html) 
 
-[Compare ALS genetic backgrounds](https://ojziff.github.io/ipsn_als_meta/html/compare_als_subgroups.html) 
+[Compare ALS genetic backgrounds](https://ojziff.github.io/als_genome_instability/html/compare_als_subgroups.html) 
 
-[ALS postmortem differential expression](https://ojziff.github.io/ipsn_als_meta/html/postmortem_spinal_cord.html) 
+[ALS postmortem differential expression](https://ojziff.github.io/als_genome_instability/html/postmortem_spinal_cord.html) 
 
-[ALS iPSN differential splicing](https://ojziff.github.io/ipsn_als_meta/html/pan_als_splicing.html)
+[ALS iPSN differential splicing](https://ojziff.github.io/als_genome_instability/html/pan_als_splicing.html)
 
-[Variants and gene fusions](https://ojziff.github.io/ipsn_als_meta/html/variants_fusions.html)
+[Variants and gene fusions](https://ojziff.github.io/als_genome_instability/html/variants_fusions.html)
 
-Rmarkdown scripts for each of these workbooks can be accessed [here](https://github.com/ojziff/ipsn_als_meta/blob/main/scripts/)
+Rmarkdown scripts for each of these workbooks can be accessed [here](https://github.com/ojziff/als_genome_instability/blob/main/scripts/)
 
 
 ## Data availability
 
-Raw RNA sequencing fastq files were accessed for each of the iPSN datasets in this table: 
+Raw RNA sequencing fastq files were accessed for each of the iPS motor-neuron datasets in this table: 
 
 | Reference             | Accession #           | Mutation              | ALS n | Control n | Library type | Paper URL                                    |
 |-----------------------|-----------------------|-----------------------|-------|-----------|--------------|----------------------------------------------|
@@ -57,15 +57,17 @@ Raw RNA sequencing fastq files were accessed for each of the iPSN datasets in th
 |                       |                       | SOD1                  |     8 |           |              |                                              |
 |                       |                       | 6 other ALS mutations |     9 |           |              |                                              |
 
-Raw fastq files were downloaded with [nf-core/fetchngs](https://nf-co.re/fetchngs) v1.7 and processed with [nf-core/rnaseq](https://nf-co.re/rnaseq) v3.8.1 utilising alignment with STAR and read quantification with salmon. 
+Post-mortem raw sequencing data is accessible at [GSE137810](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE137810) and https://collaborators.nygenome.org/. 
 
-Differential gene expression was performed using DESeq2 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
+Raw fastq files were downloaded with [nf-core/fetchngs](https://nf-co.re/fetchngs) v1.9 and processed with [nf-core/rnaseq](https://nf-co.re/rnaseq) v3.9 utilising alignment with STAR and read quantification with salmon. 
 
-Differential splicing was analysed using only polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and gender batch effects. 
+Differential gene expression was performed using DESeq2 contrasting ALS versus control, adjusting for dataset and sex batch effects. 
 
-Variant analysis was performed on Answer ALS samples only using [nf-core/rnavar](https://nf-co.re/rnavar) v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. Adjustment for read coverage was performed using a spline.
+Differential splicing was analysed using only polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and sex batch effects. 
 
-RNA fusion analysis was performed on paired-end datasets using [nf-core/rnafusion](https://nf-co.re/rnafusion) v2.0.0, utilising the STAR-Fusion workflow. Adjustment was made for dataset and read coverage (with a spline).
+Variant analysis was performed using [nf-core/rnavar](https://nf-co.re/rnavar) v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. Adjustment for read coverage and age were performed.
+
+RNA fusion analysis was performed on paired-end datasets using [nf-core/rnafusion](https://nf-co.re/rnafusion) v2.0.0, utilising the STAR-Fusion workflow. Adjustment was made for dataset, read coverage and age.
 
 Schematics were created using [BioRender](https://biorender.com/).
 
