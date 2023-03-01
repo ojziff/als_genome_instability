@@ -21,9 +21,9 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [ALS postmortem differential expression](https://ojziff.github.io/als_genome_instability/html/postmortem_spinal_cord.html) 
 
-[ALS iPSN differential splicing](https://ojziff.github.io/als_genome_instability/html/pan_als_splicing.html)
+[ALS differential splicing](https://ojziff.github.io/als_genome_instability/html/als_splicing.html)
 
-[Variants and gene fusions](https://ojziff.github.io/als_genome_instability/html/variants_fusions.html)
+[Somatic mutations and gene fusions](https://ojziff.github.io/als_genome_instability/html/somatic_mutations.html)
 
 Rmarkdown scripts for each of these workbooks can be accessed [here](https://github.com/ojziff/als_genome_instability/blob/main/scripts/)
 
