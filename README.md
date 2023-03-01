@@ -4,7 +4,7 @@ Oliver Ziff 2023
 
 This page contains scripts to analyse the data and reproduce the figures from the manuscript.
 
-<img src="https://ojziff.github.io/ipsn_als_meta/figures/Fig 1. MN meta pipeline.pdf" height="400">
+<img src="https://ojziff.github.io/als_genome_instability/figures/Fig 1. MN meta pipeline.pdf" height="400">
 
 #### [Manuscript link](https://www.medrxiv.org/)
 
