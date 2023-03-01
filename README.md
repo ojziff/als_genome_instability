@@ -63,7 +63,7 @@ Raw fastq files were downloaded with [nf-core/fetchngs](https://nf-co.re/fetchng
 
 Differential gene expression was performed using DESeq2 contrasting ALS versus control, adjusting for dataset and sex batch effects. 
 
-Differential splicing was analysed using only polyA samples with MAJIQ v2.4 contrasting ALS versus control, adjusting for dataset and sex batch effects. 
+Differential splicing was analysed using only polyA samples with [MAJIQ v2.4](https://majiq.biociphers.org/) contrasting ALS versus control, adjusting for dataset and sex batch effects. 
 
 Variant analysis was performed using [nf-core/rnavar](https://nf-co.re/rnavar) v1.0.0, which is based on GATK v4.2.6 short variant discovery workflow. Adjustment for read coverage and age were performed.
 
