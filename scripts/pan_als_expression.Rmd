@@ -200,7 +200,6 @@ ipsc_mn_als_datasets.geneList = sort(ipsc_mn_als_datasets.geneList, decreasing =
 
 gprofiler_database.DNA_damage_pathways = gprofiler_database[grepl('DNA damage|p53', names(gprofiler_database))]
 gprofiler_database.DNA_damage_pathways_fgseaRes <- fgsea(pathways = gprofiler_database.DNA_damage_pathways, stats = ipsc_mn_als_datasets.geneList)
-gprofiler_database.DNA_damage_pathways_fgseaRes %>% arrange(pval)
 gprofiler_database.DNA_damage.filt = filter(gprofiler_database.DNA_damage_pathways_fgseaRes, size >7, !grepl("uncertain|negative|prostate",pathway)) %>% mutate(p.signif = case_when(pval < 0.003 ~ "***", pval < 0.009 ~ "***",pval < 0.01 ~ "**",pval < 0.05 ~ "*", TRUE ~ ""), group1 = "pathway", group2 = "pathway")
 gprofiler_database.DNA_damage_pathways_fgseaRes.barplot <- ggplot(gprofiler_database.DNA_damage.filt, aes(x=reorder(pathway, NES), y = NES)) +
     geom_bar(aes(fill = NES), stat = "identity") +
@@ -388,9 +387,7 @@ ipsc_mn_datasets_stat = select(answerals$res, gene_id, answerals = stat) %>%
   drop_na() %>%
   column_to_rownames("gene_id")
 cormat <- round(cor(ipsc_mn_datasets_stat),2)
-head(cormat)
 melted_cormat <- melt(cormat)
-head(melted_cormat)
 get_lower_tri<-function(cormat){ # Get lower triangle of the correlation matrix
   cormat[upper.tri(cormat)] <- NA
   return(cormat)
@@ -468,61 +465,10 @@ ipsc_mn_datasets_list.TP53.dorothea_scores.plot
 answerals.proteomics.als_vs_ctrl.res = read_csv(here(shared_path,"/answerals/proteomics/answerals_proteomics_als_vs_ctrl.csv"))
 ```
 
-QC Mass Spec Answer ALS
-
-```{r}
-answerals_proteomics_intensities = read_csv(here(shared_path,"/answerals/proteomics/AnswerALS-204-P-v1-release5_protein-level-matrix.csv"))
-colnames(answerals_proteomics_intensities) = gsub("-","_",colnames(answerals_proteomics_intensities))
-colnames(answerals_proteomics_intensities) = str_split_fixed(colnames(answerals_proteomics_intensities), "_[0-9]+",n=2)[,1]
-answerals.metadata %>% filter(sample %in% colnames(answerals_proteomics_intensities)) #197 / 204 samples have RNAseq
-targets = tibble(sample = colnames(answerals_proteomics_intensities)) %>% filter(sample!="Protein") %>% mutate(condition = case_when(grepl("CASE",sample)~"als",grepl("CTRL",sample)~"ctrl")) %>% group_split(condition) %>% purrr::map_df(~.x %>% group_by(sample) %>% mutate(replicate = cur_group_id())) %>% ungroup
-
-# log2 transform intensities
-answerals_proteomics_intensities.mat = answerals_proteomics_intensities %>% tibble_to_matrix(everything(), -Protein, row_names = "Protein")
-# boxplot(answerals_proteomics_intensities.mat,las=2,main="AnswerALS intensitites before log2")
-intensities = log2(answerals_proteomics_intensities.mat)
-intensities[intensities ==-Inf] = NA # intensities = na.omit(intensities) #remove rows with NAs
-# boxplot(intensities,las=2,main="AnswerALS intensitites after log2")
-
-# design & contrast
-library(limma)
-# limmaUserGuide()
-ALS = targets %>% mutate(ALS = case_when(grepl("CASE",sample)~1,grepl("CTRL",sample)~0)) %>% tibble_to_matrix(ALS)
-CTRL = targets %>% mutate(CTRL = case_when(grepl("CASE",sample)~0,grepl("CTRL",sample)~1)) %>% tibble_to_matrix(CTRL)
-design = cbind(ALS, CTRL)+0
-# head(design)
-contr = makeContrasts( ALS - CTRL, levels = design)
-fit = lmFit(intensities, design) # linear model
-fit2 = contrasts.fit(fit, contr)
-fit2 = eBayes(fit2, trend = TRUE, robust = TRUE) # https://support.bioconductor.org/p/118495/
-# fit2 # 4442 peptides compared
-
-# QC figures
-proteomics_mds = plotMDS(intensities, pch = 1, cex = 0.5, col=ifelse(targets$condition=="ctrl","blue","red"))
-proteomics_mds.toplot <- data.frame(Dim1 = proteomics_mds$x, Dim2 = proteomics_mds$y, Condition = targets$condition)
-proteomics_mds.plot = ggplot(proteomics_mds.toplot, aes(Dim1, Dim2, colour = Condition)) + geom_point(size=1) +
-  theme_oz() + theme(legend.text=element_text(size=6), legend.title=element_text(size=7), legend.position = "top", legend.box = "vertical", legend.spacing = unit(0.01, 'cm')) + guides(color=guide_legend(keywidth=0.1, keyheight=0.1, default.unit="inch", title.position = "top")) +
-  xlab(paste0("PC1: 29% variance")) +  ylab(paste0("PC2: 11% variance"))
-proteomics_mds.plot
-
-library(gridGraphics)
-library(grid)
-grid.echo()
-mean_var_plot = grid.grab()
-grid.newpage()
-mean_var_plot = editGrob(mean_var_plot)
-grid.draw(mean_var_plot) # mean-variance relationship
-as.ggplot(mean_var_plot)
-answerals.proteomics.qc.fig.merged = ggarrange(proteomics_mds.plot, NULL, p, nrow = 3, heights = c(1,0.25,1), labels = c("a","","b"))
-answerals.proteomics.qc.fig.merged
-
-```
-
 
 ## Volcano & GO & GSEA
  
 ```{r}
-volcanoplot(fit2)
 answerals.proteomics.als_vs_ctrl.volcano = volcano_plot(answerals.proteomics.als_vs_ctrl.res, title = "Protein Expression", subtitle = "171 ALS vs 33 CTRL", 
   gene_labels = c(pull(top_n(answerals.proteomics.als_vs_ctrl.res,n=10,wt=stat),gene_name), pull(filter(answerals.proteomics.als_vs_ctrl.res, pvalue < 0.05, gene_name %in% c(ALS_genes,p53.signalling.pathway)),gene_name), "TARDBP","FUS","SFPQ","SOD1", "BRD4", "EEF2"),
                   ymax = 4,xmax = 2,numerator = "ALS",denomenator = "CTRL", significance_threshold = "pvalue", dpi = 300)
@@ -533,12 +479,10 @@ answerals.proteomics.als_vs_ctrl.gost <- answerals.proteomics.als_vs_ctrl.res %>
 answerals.proteomics.als_vs_ctrl.gprofiles <- answerals.proteomics.als_vs_ctrl.gost$result %>% filter(!str_detect(source, "TF|CORUM|HPA")) %>% arrange( -log10(p_value) ) %>% mutate(query = case_when(query == "query_1" ~ "ALS\nDown", query == "query_2" ~ "ALS\nUp"), term_name = as.factor(term_name))
 answerals.proteomics.als_vs_ctrl.gprofiles_down <- answerals.proteomics.als_vs_ctrl.gprofiles %>% filter(query == "ALS\nDown")
 answerals.proteomics.als_vs_ctrl.gprofiles_up <- answerals.proteomics.als_vs_ctrl.gprofiles %>% filter(query == "ALS\nUp")
-paste('"',unique(answerals.proteomics.als_vs_ctrl.gprofiles_down$term_name),'",', sep = "", collapse = '\n') %>% cat()
 down_list <- c(
 "Schaffer collateral - CA1 synapse",
 "Golgi transport complex")
 answerals.proteomics.als_vs_ctrl.gprofiles_filt_down <- answerals.proteomics.als_vs_ctrl.gprofiles_down %>% filter(query == "ALS\nDown")  %>% filter(term_name %in% down_list)
-paste('"',unique(answerals.proteomics.als_vs_ctrl.gprofiles_up$term_name),'",', sep = "", collapse = '\n') %>% cat()
 up_list <- c(
 "proteasome complex",
 "Axon guidance",
