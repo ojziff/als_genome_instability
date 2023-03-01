@@ -17,7 +17,7 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 [ALS iPSN differential expression](https://ojziff.github.io/als_genome_instability/html/pan_als_expression.html) 
 
-[Compare ALS genetic backgrounds](https://ojziff.github.io/als_genome_instability/html/compare_als_subgroups.html) 
+[ALS genetic subgroup expression](https://ojziff.github.io/als_genome_instability/html/als_subgroups_expression.html) 
 
 [ALS postmortem differential expression](https://ojziff.github.io/als_genome_instability/html/postmortem_spinal_cord.html) 
 
