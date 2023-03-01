@@ -1,3 +1,3 @@
-# iPSN ALS meta-analysis browser
+# ALS genome instability browser
 
-[Launch Shiny app](https://oliverziff.shinyapps.io/ipsn_als_meta_browser/)
+[Launch Shiny app](https://oliverziff.shinyapps.io/als_genome_instability/)
