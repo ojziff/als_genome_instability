@@ -6,7 +6,7 @@ This page contains scripts to analyse the data and reproduce the figures from th
 
 <img src="https://ojziff.github.io/als_genome_instability/figures/MN meta pipeline (30).png" height="400">
 
-#### [Manuscript link](https://www.medrxiv.org/)
+#### [Manuscript link](https://www.nature.com/articles/s41467-023-37630-6)
 
 #### [Launch Shiny app](https://oliverziff.shinyapps.io/als_genome_instability/)
 
